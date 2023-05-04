@@ -3,7 +3,7 @@
 #### This package depends on @ffmpeg/ffmpeg, you need install it first
 
 ```shell
-#
+# install ffmpeg
 npm install @ffmpeg/ffmpeg @ffmpeg/core
 
 ```
