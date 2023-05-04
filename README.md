@@ -33,6 +33,6 @@ const hls2mp4 = new Hls2Mp4({
   // type = 2  => merge ts
 });
 
-const buffer = hls2mp4.download('https://test.m3u8')
+const buffer = await hls2mp4.download('your m3u8 url')
 hls2mp4.saveToFile(buffer, 'test.mp4')
 ```
