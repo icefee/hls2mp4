@@ -1,0 +1,40 @@
+{
+  "name": "hls2mp4",
+  "version": "1.0.0",
+  "description": "a tool for download hls/m3u8 to mp4",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "repository": "https://github.com/icefee/hls2mp4",
+  "keywords": [
+    "ffmpeg",
+    "hls",
+    "m3u8"
+  ],
+  "author": "icefee@outlook.com",
+  "license": "MIT",
+  "scripts": {
+    "build": "rollup -c"
+  },
+  "devDependencies": {
+    "@rollup/plugin-typescript": "^11.1.0",
+    "rollup": "^3.21.4",
+    "typescript": "^4.7.4",
+    "tslib": "^2.0.0",
+    "@ffmpeg/core": "^0.11.0",
+    "@ffmpeg/ffmpeg": "^0.11.6"
+  },
+  "type": "module",
+  "homepage": "hls2mp4",
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
