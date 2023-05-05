@@ -5,7 +5,8 @@
 node_modules/
 
 # dist
-dist/
+dist/package.json
+dist/README.md
 
 # roolup cache
 .rollup.cache/
