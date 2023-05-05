@@ -32,10 +32,10 @@ export default class Hls2Mp4 {
     }
 
     private async parseM3u8File(url: string): Promise<string> {
-        const playList = await fetch(url).then(
-            response => response.text()
+        const playList = await fetchFile(url).then(
+            data => new Blob([data.buffer]).text()
         )
-        const matchedM3u8 = playList.match(/(https?:\/\/)?[a-zA-Z\d_\.\-\/]+?\.m3u8/i)
+        const matchedM3u8 = playList.match(/(https?:\/\/)?[a-zA-Z\d_:\.\-\/]+?\.m3u8/i)
         if (matchedM3u8) {
             const parsedUrl = this.parseUrl(url, matchedM3u8[0])
             return this.parseM3u8File(parsedUrl);
@@ -47,7 +47,7 @@ export default class Hls2Mp4 {
         this.onProgress?.(TaskType.parseM3u8, 0)
         let m3u8Parsed = await this.parseM3u8File(url)
         this.onProgress?.(TaskType.parseM3u8, 1)
-        const segs = m3u8Parsed.match(/(https?:\/\/)?[a-zA-Z\d_\.\-\/]+?\.ts/g)
+        const segs = m3u8Parsed.match(/(https?:\/\/)?[a-zA-Z\d_\.\-\/]+?\.ts/gi)
         for (let i = 0; i < segs.length; i++) {
             const parsedUrl = this.parseUrl(url, segs[i])
             const segName = `seg-${i}.ts`;
