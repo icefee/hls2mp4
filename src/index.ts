@@ -10,6 +10,11 @@ interface ProgressCallback {
     (type: TaskType, progress: number): void
 }
 
+interface M3u8Parsed {
+    url: string;
+    content: string;
+}
+
 export default class Hls2Mp4 {
 
     private instance: FFmpeg;
@@ -31,33 +36,36 @@ export default class Hls2Mp4 {
         return uri.origin + uri.pathname.replace(/[^\/]+$/, '') + path;
     }
 
-    private async parseM3u8File(url: string): Promise<string> {
+    private async parseM3u8File(url: string): Promise<M3u8Parsed> {
         const playList = await fetchFile(url).then(
             data => new Blob([data.buffer]).text()
         )
         const matchedM3u8 = playList.match(/(https?:\/\/)?[a-zA-Z\d_:\.\-\/]+?\.m3u8/i)
         if (matchedM3u8) {
             const parsedUrl = this.parseUrl(url, matchedM3u8[0])
-            return this.parseM3u8File(parsedUrl);
+            return this.parseM3u8File(parsedUrl)
         }
-        return playList;
+        return {
+            url,
+            content: playList
+        }
     }
 
     private async downloadM3u8(url: string) {
         this.onProgress?.(TaskType.parseM3u8, 0)
-        let m3u8Parsed = await this.parseM3u8File(url)
+        let { content, url: parsedUrl } = await this.parseM3u8File(url)
         this.onProgress?.(TaskType.parseM3u8, 1)
-        const segs = m3u8Parsed.match(/(https?:\/\/)?[a-zA-Z\d_\.\-\/]+?\.ts/gi)
+        const segs = content.match(/(https?:\/\/)?[a-zA-Z\d_\.\-\/]+?\.ts/gi)
         for (let i = 0; i < segs.length; i++) {
-            const parsedUrl = this.parseUrl(url, segs[i])
-            const segName = `seg-${i}.ts`;
-            this.instance.FS('writeFile', segName, await fetchFile(parsedUrl));
+            const tsUrl = this.parseUrl(parsedUrl, segs[i])
+            const segName = `seg-${i}.ts`
+            this.instance.FS('writeFile', segName, await fetchFile(tsUrl))
             this.onProgress?.(TaskType.downloadTs, (i + 1) / segs.length)
-            m3u8Parsed = m3u8Parsed.replace(segs[i], segName)
+            content = content.replace(segs[i], segName)
         }
-        const m3u8 = 'temp.m3u8';
-        this.instance.FS('writeFile', m3u8, m3u8Parsed);
-        return m3u8;
+        const m3u8 = 'temp.m3u8'
+        this.instance.FS('writeFile', m3u8, content)
+        return m3u8
     }
 
     public async download(url: string) {

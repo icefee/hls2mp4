@@ -87,7 +87,10 @@ var Hls2Mp4 = /** @class */ (function () {
                             parsedUrl = this.parseUrl(url, matchedM3u8[0]);
                             return [2 /*return*/, this.parseM3u8File(parsedUrl)];
                         }
-                        return [2 /*return*/, playList];
+                        return [2 /*return*/, {
+                                url: url,
+                                content: playList
+                            }];
                 }
             });
         });
@@ -95,36 +98,36 @@ var Hls2Mp4 = /** @class */ (function () {
     Hls2Mp4.prototype.downloadM3u8 = function (url) {
         var _a, _b, _c;
         return __awaiter(this, void 0, void 0, function () {
-            var m3u8Parsed, segs, i, parsedUrl, segName, _d, _e, _f, m3u8;
-            return __generator(this, function (_g) {
-                switch (_g.label) {
+            var _d, content, parsedUrl, segs, i, tsUrl, segName, _e, _f, _g, m3u8;
+            return __generator(this, function (_h) {
+                switch (_h.label) {
                     case 0:
                         (_a = this.onProgress) === null || _a === void 0 ? void 0 : _a.call(this, TaskType.parseM3u8, 0);
                         return [4 /*yield*/, this.parseM3u8File(url)];
                     case 1:
-                        m3u8Parsed = _g.sent();
+                        _d = _h.sent(), content = _d.content, parsedUrl = _d.url;
                         (_b = this.onProgress) === null || _b === void 0 ? void 0 : _b.call(this, TaskType.parseM3u8, 1);
-                        segs = m3u8Parsed.match(/(https?:\/\/)?[a-zA-Z\d_\.\-\/]+?\.ts/gi);
+                        segs = content.match(/(https?:\/\/)?[a-zA-Z\d_\.\-\/]+?\.ts/gi);
                         i = 0;
-                        _g.label = 2;
+                        _h.label = 2;
                     case 2:
                         if (!(i < segs.length)) return [3 /*break*/, 5];
-                        parsedUrl = this.parseUrl(url, segs[i]);
+                        tsUrl = this.parseUrl(parsedUrl, segs[i]);
                         segName = "seg-".concat(i, ".ts");
-                        _e = (_d = this.instance).FS;
-                        _f = ['writeFile', segName];
-                        return [4 /*yield*/, fetchFile(parsedUrl)];
+                        _f = (_e = this.instance).FS;
+                        _g = ['writeFile', segName];
+                        return [4 /*yield*/, fetchFile(tsUrl)];
                     case 3:
-                        _e.apply(_d, _f.concat([_g.sent()]));
+                        _f.apply(_e, _g.concat([_h.sent()]));
                         (_c = this.onProgress) === null || _c === void 0 ? void 0 : _c.call(this, TaskType.downloadTs, (i + 1) / segs.length);
-                        m3u8Parsed = m3u8Parsed.replace(segs[i], segName);
-                        _g.label = 4;
+                        content = content.replace(segs[i], segName);
+                        _h.label = 4;
                     case 4:
                         i++;
                         return [3 /*break*/, 2];
                     case 5:
                         m3u8 = 'temp.m3u8';
-                        this.instance.FS('writeFile', m3u8, m3u8Parsed);
+                        this.instance.FS('writeFile', m3u8, content);
                         return [2 /*return*/, m3u8];
                 }
             });
