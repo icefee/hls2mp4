@@ -1,6 +1,6 @@
 {
   "name": "hls2mp4",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "a tool for download hls/m3u8 to mp4",
   "main": "index.js",
   "types": "index.d.ts",

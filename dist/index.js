@@ -80,8 +80,8 @@ function parseM3u8File(url) {
                     playList = _a.sent();
                     matchedM3u8 = playList.match(/(https?:\/\/)?[a-zA-Z\d_:\.\-\/]+?\.m3u8/i);
                     if (matchedM3u8) {
-                        parsedUrl = this.parseUrl(url, matchedM3u8[0]);
-                        return [2 /*return*/, this.parseM3u8File(parsedUrl)];
+                        parsedUrl = parseUrl(url, matchedM3u8[0]);
+                        return [2 /*return*/, parseM3u8File(parsedUrl)];
                     }
                     return [2 /*return*/, {
                             url: url,
