@@ -33,8 +33,8 @@ export async function parseM3u8File(url: string): Promise<M3u8Parsed> {
     )
     const matchedM3u8 = playList.match(/(https?:\/\/)?[a-zA-Z\d_:\.\-\/]+?\.m3u8/i)
     if (matchedM3u8) {
-        const parsedUrl = this.parseUrl(url, matchedM3u8[0])
-        return this.parseM3u8File(parsedUrl)
+        const parsedUrl = parseUrl(url, matchedM3u8[0])
+        return parseM3u8File(parsedUrl)
     }
     return {
         url,
