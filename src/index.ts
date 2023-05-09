@@ -20,11 +20,7 @@ function parseUrl(url: string, path: string) {
     if (path.startsWith('http')) {
         return path;
     }
-    const uri = new URL(url);
-    if (path.startsWith('/')) {
-        return uri.origin + path;
-    }
-    return uri.origin + uri.pathname.replace(/[^\/]+$/, '') + path;
+    return new URL(path, url).href;
 }
 
 export async function parseM3u8File(url: string, customFetch?: (url: string) => Promise<string>): Promise<M3u8Parsed> {
