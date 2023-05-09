@@ -27,14 +27,20 @@ function parseUrl(url: string, path: string) {
     return uri.origin + uri.pathname.replace(/[^\/]+$/, '') + path;
 }
 
-export async function parseM3u8File(url: string): Promise<M3u8Parsed> {
-    const playList = await fetchFile(url).then(
-        data => new Blob([data.buffer]).text()
-    )
+export async function parseM3u8File(url: string, customFetch?: (url: string) => Promise<string>): Promise<M3u8Parsed> {
+    let playList = '';
+    if (customFetch) {
+        playList = await customFetch(url)
+    }
+    else {
+        playList = await fetchFile(url).then(
+            data => new Blob([data.buffer]).text()
+        )
+    }
     const matchedM3u8 = playList.match(/(https?:\/\/)?[a-zA-Z\d_:\.\-\/]+?\.m3u8/i)
     if (matchedM3u8) {
         const parsedUrl = parseUrl(url, matchedM3u8[0])
-        return parseM3u8File(parsedUrl)
+        return parseM3u8File(parsedUrl, customFetch)
     }
     return {
         url,

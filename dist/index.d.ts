@@ -12,7 +12,7 @@ export interface M3u8Parsed {
     url: string;
     content: string;
 }
-export declare function parseM3u8File(url: string): Promise<M3u8Parsed>;
+export declare function parseM3u8File(url: string, customFetch?: (url: string) => Promise<string>): Promise<M3u8Parsed>;
 export default class Hls2Mp4 {
     private instance;
     onProgress?: ProgressCallback;

@@ -71,18 +71,27 @@
         }
         return uri.origin + uri.pathname.replace(/[^\/]+$/, '') + path;
     }
-    function parseM3u8File(url) {
+    function parseM3u8File(url, customFetch) {
         return __awaiter(this, void 0, void 0, function () {
             var playList, matchedM3u8, parsedUrl;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, ffmpeg.fetchFile(url).then(function (data) { return new Blob([data.buffer]).text(); })];
+                    case 0:
+                        playList = '';
+                        if (!customFetch) return [3 /*break*/, 2];
+                        return [4 /*yield*/, customFetch(url)];
                     case 1:
                         playList = _a.sent();
+                        return [3 /*break*/, 4];
+                    case 2: return [4 /*yield*/, ffmpeg.fetchFile(url).then(function (data) { return new Blob([data.buffer]).text(); })];
+                    case 3:
+                        playList = _a.sent();
+                        _a.label = 4;
+                    case 4:
                         matchedM3u8 = playList.match(/(https?:\/\/)?[a-zA-Z\d_:\.\-\/]+?\.m3u8/i);
                         if (matchedM3u8) {
                             parsedUrl = parseUrl(url, matchedM3u8[0]);
-                            return [2 /*return*/, parseM3u8File(parsedUrl)];
+                            return [2 /*return*/, parseM3u8File(parsedUrl, customFetch)];
                         }
                         return [2 /*return*/, {
                                 url: url,
