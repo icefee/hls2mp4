@@ -1,18 +1,22 @@
 import { CreateFFmpegOptions } from '@ffmpeg/ffmpeg';
 export declare enum TaskType {
-    parseM3u8 = 0,
-    downloadTs = 1,
-    mergeTs = 2
+    loadFFmeg = 0,
+    parseM3u8 = 1,
+    downloadTs = 2,
+    mergeTs = 3
 }
 interface ProgressCallback {
     (type: TaskType, progress: number): void;
 }
+export interface M3u8Parsed {
+    url: string;
+    content: string;
+}
+export declare function parseM3u8File(url: string): Promise<M3u8Parsed>;
 export default class Hls2Mp4 {
     private instance;
     onProgress?: ProgressCallback;
     constructor(options: CreateFFmpegOptions, onProgress?: ProgressCallback);
-    private parseUrl;
-    private parseM3u8File;
     private downloadM3u8;
     download(url: string): Promise<ArrayBufferLike>;
     saveToFile(buffer: ArrayBufferLike, filename: string): void;
