@@ -61,15 +61,14 @@
         TaskType[TaskType["downloadTs"] = 2] = "downloadTs";
         TaskType[TaskType["mergeTs"] = 3] = "mergeTs";
     })(exports.TaskType || (exports.TaskType = {}));
+    function createFileUrlRegExp(ext, flags) {
+        return new RegExp('(https?://)?[\\w:\\.\\-\\/]+?\\.' + ext, flags);
+    }
     function parseUrl(url, path) {
         if (path.startsWith('http')) {
             return path;
         }
-        var uri = new URL(url);
-        if (path.startsWith('/')) {
-            return uri.origin + path;
-        }
-        return uri.origin + uri.pathname.replace(/[^\/]+$/, '') + path;
+        return new URL(path, url).href;
     }
     function parseM3u8File(url, customFetch) {
         return __awaiter(this, void 0, void 0, function () {
@@ -88,7 +87,7 @@
                         playList = _a.sent();
                         _a.label = 4;
                     case 4:
-                        matchedM3u8 = playList.match(/(https?:\/\/)?[a-zA-Z\d_:\.\-\/]+?\.m3u8/i);
+                        matchedM3u8 = playList.match(createFileUrlRegExp('m3u8', 'i'));
                         if (matchedM3u8) {
                             parsedUrl = parseUrl(url, matchedM3u8[0]);
                             return [2 /*return*/, parseM3u8File(parsedUrl, customFetch)];
@@ -109,34 +108,47 @@
         Hls2Mp4.prototype.downloadM3u8 = function (url) {
             var _a, _b, _c;
             return __awaiter(this, void 0, void 0, function () {
-                var _d, content, parsedUrl, segs, i, tsUrl, segName, _e, _f, _g, m3u8;
-                return __generator(this, function (_h) {
-                    switch (_h.label) {
+                var _d, content, parsedUrl, keyMatch, key, keyUrl, keyName, _e, _f, _g, segs, i, tsUrl, segName, _h, _j, _k, m3u8;
+                return __generator(this, function (_l) {
+                    switch (_l.label) {
                         case 0:
                             (_a = this.onProgress) === null || _a === void 0 ? void 0 : _a.call(this, exports.TaskType.parseM3u8, 0);
                             return [4 /*yield*/, parseM3u8File(url)];
                         case 1:
-                            _d = _h.sent(), content = _d.content, parsedUrl = _d.url;
-                            (_b = this.onProgress) === null || _b === void 0 ? void 0 : _b.call(this, exports.TaskType.parseM3u8, 1);
-                            segs = content.match(/(https?:\/\/)?[a-zA-Z\d_\.\-\/]+?\.ts/gi);
-                            i = 0;
-                            _h.label = 2;
+                            _d = _l.sent(), content = _d.content, parsedUrl = _d.url;
+                            keyMatch = content.match(createFileUrlRegExp('key', 'i'));
+                            if (!keyMatch) return [3 /*break*/, 3];
+                            key = keyMatch[0];
+                            keyUrl = parseUrl(parsedUrl, key);
+                            keyName = 'key.key';
+                            _f = (_e = this.instance).FS;
+                            _g = ['writeFile', keyName];
+                            return [4 /*yield*/, ffmpeg.fetchFile(keyUrl)];
                         case 2:
-                            if (!(i < segs.length)) return [3 /*break*/, 5];
+                            _f.apply(_e, _g.concat([_l.sent()]));
+                            content = content.replace(key, keyName);
+                            _l.label = 3;
+                        case 3:
+                            (_b = this.onProgress) === null || _b === void 0 ? void 0 : _b.call(this, exports.TaskType.parseM3u8, 1);
+                            segs = content.match(createFileUrlRegExp('ts', 'gi'));
+                            i = 0;
+                            _l.label = 4;
+                        case 4:
+                            if (!(i < segs.length)) return [3 /*break*/, 7];
                             tsUrl = parseUrl(parsedUrl, segs[i]);
                             segName = "seg-".concat(i, ".ts");
-                            _f = (_e = this.instance).FS;
-                            _g = ['writeFile', segName];
+                            _j = (_h = this.instance).FS;
+                            _k = ['writeFile', segName];
                             return [4 /*yield*/, ffmpeg.fetchFile(tsUrl)];
-                        case 3:
-                            _f.apply(_e, _g.concat([_h.sent()]));
+                        case 5:
+                            _j.apply(_h, _k.concat([_l.sent()]));
                             (_c = this.onProgress) === null || _c === void 0 ? void 0 : _c.call(this, exports.TaskType.downloadTs, (i + 1) / segs.length);
                             content = content.replace(segs[i], segName);
-                            _h.label = 4;
-                        case 4:
+                            _l.label = 6;
+                        case 6:
                             i++;
-                            return [3 /*break*/, 2];
-                        case 5:
+                            return [3 /*break*/, 4];
+                        case 7:
                             m3u8 = 'temp.m3u8';
                             this.instance.FS('writeFile', m3u8, content);
                             return [2 /*return*/, m3u8];
@@ -182,6 +194,7 @@
         return Hls2Mp4;
     }());
 
+    exports.createFileUrlRegExp = createFileUrlRegExp;
     exports.default = Hls2Mp4;
     exports.parseM3u8File = parseM3u8File;
 

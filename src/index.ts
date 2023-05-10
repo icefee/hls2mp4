@@ -16,6 +16,10 @@ export interface M3u8Parsed {
     content: string;
 }
 
+export function createFileUrlRegExp(ext: string, flags?: string) {
+    return new RegExp('(https?://)?[\\w:\\.\\-\\/]+?\\.' + ext, flags)
+}
+
 function parseUrl(url: string, path: string) {
     if (path.startsWith('http')) {
         return path;
@@ -33,7 +37,9 @@ export async function parseM3u8File(url: string, customFetch?: (url: string) => 
             data => new Blob([data.buffer]).text()
         )
     }
-    const matchedM3u8 = playList.match(/(https?:\/\/)?[a-zA-Z\d_:\.\-\/]+?\.m3u8/i)
+    const matchedM3u8 = playList.match(
+        createFileUrlRegExp('m3u8', 'i')
+    )
     if (matchedM3u8) {
         const parsedUrl = parseUrl(url, matchedM3u8[0])
         return parseM3u8File(parsedUrl, customFetch)
@@ -57,8 +63,20 @@ export default class Hls2Mp4 {
     private async downloadM3u8(url: string) {
         this.onProgress?.(TaskType.parseM3u8, 0)
         let { content, url: parsedUrl } = await parseM3u8File(url)
+        const keyMatch = content.match(
+            createFileUrlRegExp('key', 'i')
+        )
+        if (keyMatch) {
+            const key = keyMatch[0]
+            const keyUrl = parseUrl(parsedUrl, key)
+            const keyName = 'key.key'
+            this.instance.FS('writeFile', keyName, await fetchFile(keyUrl))
+            content = content.replace(key, keyName)
+        }
         this.onProgress?.(TaskType.parseM3u8, 1)
-        const segs = content.match(/(https?:\/\/)?[a-zA-Z\d_\.\-\/]+?\.ts/gi)
+        const segs = content.match(
+            createFileUrlRegExp('ts', 'gi')
+        )
         for (let i = 0; i < segs.length; i++) {
             const tsUrl = parseUrl(parsedUrl, segs[i])
             const segName = `seg-${i}.ts`
