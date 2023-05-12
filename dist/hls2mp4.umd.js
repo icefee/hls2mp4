@@ -108,50 +108,61 @@
             this.instance = ffmpeg.createFFmpeg(options);
             this.onProgress = onProgress;
         }
+        Hls2Mp4.prototype.transformBuffer = function (buffer) {
+            if (buffer[0] === 0x47) {
+                return buffer;
+            }
+            var bufferOffset = 0;
+            for (var i = 0; i < buffer.length; i++) {
+                if (buffer[i] === 0x47 && buffer[i + 1] === 0x40) {
+                    bufferOffset = i;
+                    break;
+                }
+            }
+            return buffer.slice(bufferOffset);
+        };
         Hls2Mp4.prototype.downloadM3u8 = function (url) {
             var _a, _b, _c;
             return __awaiter(this, void 0, void 0, function () {
-                var _d, content, parsedUrl, keyMatch, key, keyUrl, keyName, _e, _f, _g, segs, i, tsUrl, segName, _h, _j, _k, m3u8;
-                return __generator(this, function (_l) {
-                    switch (_l.label) {
+                var _d, content, parsedUrl, keyMatch, segs, i, tsUrl, segName, buffer, _e, m3u8;
+                return __generator(this, function (_f) {
+                    switch (_f.label) {
                         case 0:
                             (_a = this.onProgress) === null || _a === void 0 ? void 0 : _a.call(this, exports.TaskType.parseM3u8, 0);
                             return [4 /*yield*/, parseM3u8File(url)];
                         case 1:
-                            _d = _l.sent(), content = _d.content, parsedUrl = _d.url;
+                            _d = _f.sent(), content = _d.content, parsedUrl = _d.url;
                             keyMatch = content.match(createFileUrlRegExp('key', 'i'));
-                            if (!keyMatch) return [3 /*break*/, 3];
-                            key = keyMatch[0];
-                            keyUrl = parseUrl(parsedUrl, key);
-                            keyName = 'key.key';
-                            _f = (_e = this.instance).FS;
-                            _g = ['writeFile', keyName];
-                            return [4 /*yield*/, ffmpeg.fetchFile(keyUrl)];
-                        case 2:
-                            _f.apply(_e, _g.concat([_l.sent()]));
-                            content = content.replace(key, keyName);
-                            _l.label = 3;
-                        case 3:
+                            if (keyMatch) {
+                                throw new Error('video encrypted did not supported for now');
+                                /*
+                                const key = keyMatch[0]
+                                const keyUrl = parseUrl(parsedUrl, key)
+                                const keyName = 'key.key'
+                                this.instance.FS('writeFile', keyName, await fetchFile(keyUrl))
+                                content = content.replace(key, keyName)
+                                */
+                            }
                             (_b = this.onProgress) === null || _b === void 0 ? void 0 : _b.call(this, exports.TaskType.parseM3u8, 1);
                             segs = content.match(createFileUrlRegExp('ts', 'gi'));
                             i = 0;
-                            _l.label = 4;
-                        case 4:
-                            if (!(i < segs.length)) return [3 /*break*/, 7];
+                            _f.label = 2;
+                        case 2:
+                            if (!(i < segs.length)) return [3 /*break*/, 5];
                             tsUrl = parseUrl(parsedUrl, segs[i]);
                             segName = "seg-".concat(i, ".ts");
-                            _j = (_h = this.instance).FS;
-                            _k = ['writeFile', segName];
+                            _e = this.transformBuffer;
                             return [4 /*yield*/, ffmpeg.fetchFile(tsUrl)];
-                        case 5:
-                            _j.apply(_h, _k.concat([_l.sent()]));
+                        case 3:
+                            buffer = _e.apply(this, [_f.sent()]);
+                            this.instance.FS('writeFile', segName, buffer);
                             (_c = this.onProgress) === null || _c === void 0 ? void 0 : _c.call(this, exports.TaskType.downloadTs, (i + 1) / segs.length);
                             content = content.replace(segs[i], segName);
-                            _l.label = 6;
-                        case 6:
+                            _f.label = 4;
+                        case 4:
                             i++;
-                            return [3 /*break*/, 4];
-                        case 7:
+                            return [3 /*break*/, 2];
+                        case 5:
                             m3u8 = 'temp.m3u8';
                             this.instance.FS('writeFile', m3u8, content);
                             return [2 /*return*/, m3u8];

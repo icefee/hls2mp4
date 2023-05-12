@@ -60,6 +60,21 @@ export default class Hls2Mp4 {
         this.onProgress = onProgress;
     }
 
+    private transformBuffer(buffer: Uint8Array) {
+        if (buffer[0] === 0x47) {
+            return buffer;
+        }
+        let bufferOffset = 0;
+        for (let i = 0; i < buffer.length; i++) {
+
+            if (buffer[i] === 0x47 && buffer[i + 1] === 0x40) {
+                bufferOffset = i;
+                break;
+            }
+        }
+        return buffer.slice(bufferOffset)
+    }
+
     private async downloadM3u8(url: string) {
         this.onProgress?.(TaskType.parseM3u8, 0)
         let { content, url: parsedUrl } = await parseM3u8File(url)
@@ -67,11 +82,14 @@ export default class Hls2Mp4 {
             createFileUrlRegExp('key', 'i')
         )
         if (keyMatch) {
+            throw new Error('video encrypted did not supported for now')
+            /*
             const key = keyMatch[0]
             const keyUrl = parseUrl(parsedUrl, key)
             const keyName = 'key.key'
             this.instance.FS('writeFile', keyName, await fetchFile(keyUrl))
             content = content.replace(key, keyName)
+            */
         }
         this.onProgress?.(TaskType.parseM3u8, 1)
         const segs = content.match(
@@ -80,7 +98,8 @@ export default class Hls2Mp4 {
         for (let i = 0; i < segs.length; i++) {
             const tsUrl = parseUrl(parsedUrl, segs[i])
             const segName = `seg-${i}.ts`
-            this.instance.FS('writeFile', segName, await fetchFile(tsUrl))
+            const buffer = this.transformBuffer(await fetchFile(tsUrl))
+            this.instance.FS('writeFile', segName, buffer)
             this.onProgress?.(TaskType.downloadTs, (i + 1) / segs.length)
             content = content.replace(segs[i], segName)
         }

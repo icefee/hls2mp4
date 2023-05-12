@@ -18,6 +18,7 @@ export default class Hls2Mp4 {
     private instance;
     onProgress?: ProgressCallback;
     constructor(options: CreateFFmpegOptions, onProgress?: ProgressCallback);
+    private transformBuffer;
     private downloadM3u8;
     download(url: string): Promise<ArrayBufferLike>;
     saveToFile(buffer: ArrayBufferLike, filename: string): void;
