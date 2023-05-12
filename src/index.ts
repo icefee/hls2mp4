@@ -11,6 +11,29 @@ interface ProgressCallback {
     (type: TaskType, progress: number): void
 }
 
+type LoadResult<T = unknown> = {
+    done: boolean;
+    data: T;
+    msg?: string;
+}
+
+type Hls2Mp4Options = {
+    /**
+     * max retry times while request data failed
+     */
+    maxRetry?: number;
+    /**
+     * the concurrency for download ts
+     */
+    tsDownloadConcurrency?: number;
+}
+
+type Segment = {
+    source: string;
+    url: string;
+    name: string;
+}
+
 export interface M3u8Parsed {
     url: string;
     content: string;
@@ -53,11 +76,19 @@ export async function parseM3u8File(url: string, customFetch?: (url: string) => 
 export default class Hls2Mp4 {
 
     private instance: FFmpeg;
-    public onProgress?: ProgressCallback;
+    private maxRetry: number;
+    private loadRetryTime = 0;
+    private onProgress?: ProgressCallback;
+    private tsDownloadConcurrency: number;
+    private totalSegments = 0;
+    private savedSegments = 0;
+    public static version = '1.0.9'
 
-    constructor(options: CreateFFmpegOptions, onProgress?: ProgressCallback) {
+    constructor({ maxRetry = 3, tsDownloadConcurrency = 10, ...options }: CreateFFmpegOptions & Hls2Mp4Options, onProgress?: ProgressCallback) {
         this.instance = createFFmpeg(options);
+        this.maxRetry = maxRetry;
         this.onProgress = onProgress;
+        this.tsDownloadConcurrency = tsDownloadConcurrency;
     }
 
     private transformBuffer(buffer: Uint8Array) {
@@ -75,9 +106,47 @@ export default class Hls2Mp4 {
         return buffer.slice(bufferOffset)
     }
 
-    private async downloadM3u8(url: string) {
+    private async parseM3u8(url: string) {
         this.onProgress?.(TaskType.parseM3u8, 0)
-        let { content, url: parsedUrl } = await parseM3u8File(url)
+        const { done, data } = await this.loopLoadFile<M3u8Parsed>(
+            () => parseM3u8File(url)
+        )
+        if (done) {
+            this.onProgress?.(TaskType.parseM3u8, 1)
+            return data;
+        }
+        new Error('m3u8 load failed')
+    }
+
+    private async downloadTs(url: string) {
+        const { done, data } = await this.loopLoadFile<Uint8Array>(
+            () => fetchFile(url)
+        )
+        if (done) {
+            return data;
+        }
+        throw new Error('ts download failed')
+    }
+
+    private async downloadSegments(segs: Segment[]) {
+        return Promise.all(
+            segs.map(async ({ name, url, source }) => {
+                const tsData = await this.downloadTs(url)
+                const buffer = this.transformBuffer(tsData)
+                this.instance.FS('writeFile', name, buffer)
+                this.savedSegments += 1
+                this.onProgress?.(TaskType.downloadTs, this.savedSegments / this.totalSegments)
+                return {
+                    source,
+                    url,
+                    name
+                }
+            })
+        )
+    }
+
+    private async downloadM3u8(url: string) {
+        let { content, url: parsedUrl } = await this.parseM3u8(url)
         const keyMatch = content.match(
             createFileUrlRegExp('key', 'i')
         )
@@ -91,27 +160,80 @@ export default class Hls2Mp4 {
             content = content.replace(key, keyName)
             */
         }
-        this.onProgress?.(TaskType.parseM3u8, 1)
         const segs = content.match(
             createFileUrlRegExp('ts', 'gi')
         )
-        for (let i = 0; i < segs.length; i++) {
-            const tsUrl = parseUrl(parsedUrl, segs[i])
-            const segName = `seg-${i}.ts`
-            const buffer = this.transformBuffer(await fetchFile(tsUrl))
-            this.instance.FS('writeFile', segName, buffer)
-            this.onProgress?.(TaskType.downloadTs, (i + 1) / segs.length)
-            content = content.replace(segs[i], segName)
+        if (!segs) {
+            throw new Error('Invalid m3u8 file, no ts file found')
         }
+
+        const total = this.totalSegments = segs.length;
+        const batch = this.tsDownloadConcurrency;
+
+        for (let i = 0; i <= Math.floor((total / batch)); i++) {
+
+            const downloadSegs = await this.downloadSegments(
+                segs.slice(
+                    i * batch,
+                    Math.min(total, (i + 1) * batch)
+                ).map<Segment>(
+                    (seg, j) => {
+                        const url = parseUrl(parsedUrl, seg)
+                        const name = `seg-${i * batch + j}.ts`
+                        return {
+                            source: seg,
+                            url,
+                            name
+                        }
+                    }
+                )
+            )
+            for (const { source, name } of downloadSegs) {
+                content = content.replace(source, name)
+            }
+        }
+        console.log(content)
         const m3u8 = 'temp.m3u8'
         this.instance.FS('writeFile', m3u8, content)
         return m3u8
     }
 
-    public async download(url: string) {
+    private async loopLoadFile<T = undefined>(startLoad: () => PromiseLike<T | undefined>): Promise<LoadResult<T>> {
+        try {
+            const result = await startLoad();
+            this.loadRetryTime = 0;
+            return {
+                done: true,
+                data: result
+            }
+        }
+        catch (err) {
+            this.loadRetryTime += 1;
+            if (this.loadRetryTime < this.maxRetry) {
+                return this.loopLoadFile<T>(startLoad)
+            }
+            return {
+                done: false,
+                data: null
+            }
+        }
+    }
+
+    private async loadFFmpeg() {
         this.onProgress?.(TaskType.loadFFmeg, 0)
-        await this.instance.load();
-        this.onProgress?.(TaskType.loadFFmeg, 1)
+        const { done } = await this.loopLoadFile(
+            () => this.instance.load()
+        )
+        if (done) {
+            this.onProgress?.(TaskType.loadFFmeg, done ? 1 : -1);
+        }
+        else {
+            throw new Error('FFmpeg load failed')
+        }
+    }
+
+    public async download(url: string) {
+        await this.loadFFmpeg();
         const m3u8 = await this.downloadM3u8(url);
         this.onProgress?.(TaskType.mergeTs, 0);
         await this.instance.run('-i', m3u8, '-c', 'copy', 'temp.mp4', '-loglevel', 'debug');
