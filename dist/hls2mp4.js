@@ -285,7 +285,6 @@
                             i++;
                             return [3 /*break*/, 2];
                         case 5:
-                            console.log(content);
                             m3u8 = 'temp.m3u8';
                             this.instance.FS('writeFile', m3u8, content);
                             return [2 /*return*/, m3u8];

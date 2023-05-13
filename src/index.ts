@@ -192,7 +192,6 @@ export default class Hls2Mp4 {
                 content = content.replace(source, name)
             }
         }
-        console.log(content)
         const m3u8 = 'temp.m3u8'
         this.instance.FS('writeFile', m3u8, content)
         return m3u8
