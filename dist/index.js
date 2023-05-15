@@ -381,7 +381,7 @@ var Hls2Mp4 = /** @class */ (function () {
         anchor.click();
         setTimeout(function () { return URL.revokeObjectURL(objectUrl); }, 100);
     };
-    Hls2Mp4.version = '1.0.9';
+    Hls2Mp4.version = '1.1.0';
     return Hls2Mp4;
 }());
 
