@@ -76,6 +76,7 @@ export async function parseM3u8File(url: string, customFetch?: (url: string) => 
 export default class Hls2Mp4 {
 
     private instance: FFmpeg;
+    private ffmpegLoaded = false;
     private maxRetry: number;
     private loadRetryTime = 0;
     private onProgress?: ProgressCallback;
@@ -232,7 +233,10 @@ export default class Hls2Mp4 {
     }
 
     public async download(url: string) {
-        await this.loadFFmpeg();
+        if (!this.ffmpegLoaded) {
+            await this.loadFFmpeg();
+            this.ffmpegLoaded = true;
+        }
         const m3u8 = await this.downloadM3u8(url);
         this.onProgress?.(TaskType.mergeTs, 0);
         await this.instance.run('-i', m3u8, '-c', 'copy', 'temp.mp4', '-loglevel', 'debug');

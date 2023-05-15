@@ -127,6 +127,7 @@
     var Hls2Mp4 = /** @class */ (function () {
         function Hls2Mp4(_a, onProgress) {
             var _b = _a.maxRetry, maxRetry = _b === void 0 ? 3 : _b, _c = _a.tsDownloadConcurrency, tsDownloadConcurrency = _c === void 0 ? 10 : _c, options = __rest(_a, ["maxRetry", "tsDownloadConcurrency"]);
+            this.ffmpegLoaded = false;
             this.loadRetryTime = 0;
             this.totalSegments = 0;
             this.savedSegments = 0;
@@ -351,15 +352,19 @@
                 var m3u8, data;
                 return __generator(this, function (_c) {
                     switch (_c.label) {
-                        case 0: return [4 /*yield*/, this.loadFFmpeg()];
+                        case 0:
+                            if (!!this.ffmpegLoaded) return [3 /*break*/, 2];
+                            return [4 /*yield*/, this.loadFFmpeg()];
                         case 1:
                             _c.sent();
-                            return [4 /*yield*/, this.downloadM3u8(url)];
-                        case 2:
+                            this.ffmpegLoaded = true;
+                            _c.label = 2;
+                        case 2: return [4 /*yield*/, this.downloadM3u8(url)];
+                        case 3:
                             m3u8 = _c.sent();
                             (_a = this.onProgress) === null || _a === void 0 ? void 0 : _a.call(this, exports.TaskType.mergeTs, 0);
                             return [4 /*yield*/, this.instance.run('-i', m3u8, '-c', 'copy', 'temp.mp4', '-loglevel', 'debug')];
-                        case 3:
+                        case 4:
                             _c.sent();
                             data = this.instance.FS('readFile', 'temp.mp4');
                             this.instance.exit();

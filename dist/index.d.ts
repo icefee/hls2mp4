@@ -26,6 +26,7 @@ export declare function createFileUrlRegExp(ext: string, flags?: string): RegExp
 export declare function parseM3u8File(url: string, customFetch?: (url: string) => Promise<string>): Promise<M3u8Parsed>;
 export default class Hls2Mp4 {
     private instance;
+    private ffmpegLoaded;
     private maxRetry;
     private loadRetryTime;
     private onProgress?;
