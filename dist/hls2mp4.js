@@ -1244,7 +1244,7 @@
             anchor.click();
             setTimeout(function () { return URL.revokeObjectURL(objectUrl); }, 100);
         };
-        Hls2Mp4.version = '1.1.0';
+        Hls2Mp4.version = '1.1.4';
         return Hls2Mp4;
     }());
 

@@ -90,7 +90,7 @@ export default class Hls2Mp4 {
     private tsDownloadConcurrency: number;
     private totalSegments = 0;
     private savedSegments = 0;
-    public static version = '1.1.0'
+    public static version = '1.1.4'
 
     constructor({ maxRetry = 3, tsDownloadConcurrency = 10, ...options }: CreateFFmpegOptions & Hls2Mp4Options, onProgress?: ProgressCallback) {
         this.instance = createFFmpeg(options);
