@@ -36,8 +36,9 @@ export default class Hls2Mp4 {
     static version: string;
     constructor({ maxRetry, tsDownloadConcurrency, ...options }: CreateFFmpegOptions & Hls2Mp4Options, onProgress?: ProgressCallback);
     private transformBuffer;
+    private aesDecrypt;
     private parseM3u8;
-    private downloadTs;
+    private downloadFile;
     private downloadSegments;
     private downloadM3u8;
     private loopLoadFile;

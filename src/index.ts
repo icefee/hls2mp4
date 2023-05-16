@@ -1,4 +1,5 @@
 import { createFFmpeg, fetchFile, CreateFFmpegOptions, FFmpeg } from '@ffmpeg/ffmpeg';
+import aesjs from 'aes-js';
 
 export enum TaskType {
     loadFFmeg = 0,
@@ -37,6 +38,12 @@ type Segment = {
 export interface M3u8Parsed {
     url: string;
     content: string;
+}
+
+type SegmentGroup = {
+    key?: string;
+    iv?: string;
+    segments: string[];
 }
 
 export function createFileUrlRegExp(ext: string, flags?: string) {
@@ -107,6 +114,11 @@ export default class Hls2Mp4 {
         return buffer.slice(bufferOffset)
     }
 
+    private aesDecrypt(buffer: Uint8Array, keyBuffer: Uint8Array, iv = '') {
+        const aesCbc = new aesjs.ModeOfOperation.cbc(keyBuffer, iv);
+        return aesCbc.decrypt(buffer);
+    }
+
     private async parseM3u8(url: string) {
         this.onProgress?.(TaskType.parseM3u8, 0)
         const { done, data } = await this.loopLoadFile<M3u8Parsed>(
@@ -119,21 +131,21 @@ export default class Hls2Mp4 {
         new Error('m3u8 load failed')
     }
 
-    private async downloadTs(url: string) {
+    private async downloadFile(url: string) {
         const { done, data } = await this.loopLoadFile<Uint8Array>(
             () => fetchFile(url)
         )
         if (done) {
             return data;
         }
-        throw new Error('ts download failed')
+        throw new Error(`load file ${url} error after retry 3 times.`)
     }
 
-    private async downloadSegments(segs: Segment[]) {
+    private async downloadSegments(segs: Segment[], key?: Uint8Array, iv?: string) {
         return Promise.all(
             segs.map(async ({ name, url, source }) => {
-                const tsData = await this.downloadTs(url)
-                const buffer = this.transformBuffer(tsData)
+                const tsData = await this.downloadFile(url)
+                const buffer = key ? this.aesDecrypt(tsData, key, iv) : this.transformBuffer(tsData)
                 this.instance.FS('writeFile', name, buffer)
                 this.savedSegments += 1
                 this.onProgress?.(TaskType.downloadTs, this.savedSegments / this.totalSegments)
@@ -148,51 +160,85 @@ export default class Hls2Mp4 {
 
     private async downloadM3u8(url: string) {
         let { content, url: parsedUrl } = await this.parseM3u8(url)
-        const keyMatch = content.match(
-            createFileUrlRegExp('key', 'i')
+        const keyMatchRegExp = createFileUrlRegExp('key', 'gi');
+        const keyTagMatchRegExp = new RegExp(
+            '#EXT-X-KEY:METHOD=(AES-128|NONE)(,URI="' + keyMatchRegExp.source + '"(,IV=\\w+)?)?',
+            'gi'
         )
-        if (keyMatch) {
-            throw new Error('video encrypted did not supported for now')
-            /*
-            const key = keyMatch[0]
-            const keyUrl = parseUrl(parsedUrl, key)
-            const keyName = 'key.key'
-            this.instance.FS('writeFile', keyName, await fetchFile(keyUrl))
-            content = content.replace(key, keyName)
-            */
-        }
-        const segs = content.match(
-            createFileUrlRegExp('ts', 'gi')
+        const matchReg = new RegExp(
+            keyTagMatchRegExp.source + '|' + createFileUrlRegExp('ts', 'gi').source,
+            'g'
         )
-        if (!segs) {
+        const matches = content.match(matchReg)
+        if (!matches) {
             throw new Error('Invalid m3u8 file, no ts file found')
         }
-
-        const total = this.totalSegments = segs.length;
-        const batch = this.tsDownloadConcurrency;
-
-        for (let i = 0; i <= Math.floor((total / batch)); i++) {
-
-            const downloadSegs = await this.downloadSegments(
-                segs.slice(
-                    i * batch,
-                    Math.min(total, (i + 1) * batch)
-                ).map<Segment>(
-                    (seg, j) => {
-                        const url = parseUrl(parsedUrl, seg)
-                        const name = `seg-${i * batch + j}.ts`
-                        return {
-                            source: seg,
-                            url,
-                            name
-                        }
-                    }
-                )
-            )
-            for (const { source, name } of downloadSegs) {
-                content = content.replace(source, name)
+        const segments: SegmentGroup[] = []
+        if (matches) {
+            for (let i = 0; i < matches.length; i++) {
+                const matched = matches[i]
+                if (matched.match(/#EXT-X-KEY/)) {
+                    const matchedKey = matched.match(keyMatchRegExp)
+                    const matchedIV = matched.match(/(?<=IV=)\w+$/)
+                    segments.push({
+                        key: matchedKey?.[0],
+                        iv: matchedIV?.[0],
+                        segments: []
+                    })
+                }
+                else if (i === 0) {
+                    segments.push({
+                        segments: [matched]
+                    })
+                }
+                else {
+                    segments[segments.length - 1].segments.push(matched)
+                }
             }
         }
+
+        this.totalSegments = segments.reduce((prev, current) => prev + current.segments.length, 0);
+        const batch = this.tsDownloadConcurrency;
+        let treatedSegments = 0;
+
+        for (const group of segments) {
+
+            const total = group.segments.length;
+
+            let keyBuffer: Uint8Array;
+
+            if (group.key) {
+                const keyUrl = parseUrl(parsedUrl, group.key)
+                keyBuffer = await this.downloadFile(keyUrl)
+            }
+
+            for (let i = 0; i <= Math.floor((total / batch)); i++) {
+
+                const downloadSegs = await this.downloadSegments(
+                    group.segments.slice(
+                        i * batch,
+                        Math.min(total, (i + 1) * batch)
+                    ).map<Segment>(
+                        (seg, j) => {
+                            const url = parseUrl(parsedUrl, seg)
+                            const name = `seg-${treatedSegments + i * batch + j}.ts`
+                            return {
+                                source: seg,
+                                url,
+                                name
+                            }
+                        }
+                    ),
+                    keyBuffer,
+                    group.iv
+                )
+                for (const { source, name } of downloadSegs) {
+                    content = content.replace(source, name)
+                }
+            }
+            treatedSegments += total;
+        }
+        content = content.replace(keyTagMatchRegExp, '')
         const m3u8 = 'temp.m3u8'
         this.instance.FS('writeFile', m3u8, content)
         return m3u8

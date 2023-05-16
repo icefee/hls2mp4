@@ -46,7 +46,3 @@ hls2mp4.saveToFile(buffer, 'test.mp4')
   const hls2mp4 = new Hls2Mp4({...})
 </script>
 ```
-
-### limitations
-
-#### aes-128 encrypt doesn't support for now
