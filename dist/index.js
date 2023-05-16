@@ -979,17 +979,19 @@ var Hls2Mp4 = /** @class */ (function () {
         });
     };
     Hls2Mp4.prototype.downloadFile = function (url) {
+        var _a;
         return __awaiter(this, void 0, void 0, function () {
-            var _a, done, data;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
+            var _b, done, data, fileName;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
                     case 0: return [4 /*yield*/, this.loopLoadFile(function () { return fetchFile(url); })];
                     case 1:
-                        _a = _b.sent(), done = _a.done, data = _a.data;
+                        _b = _c.sent(), done = _b.done, data = _b.data;
                         if (done) {
                             return [2 /*return*/, data];
                         }
-                        throw new Error("load file ".concat(url, " error after retry 3 times."));
+                        fileName = (_a = url.match(/\w+\.\w{2,3}$/i)) === null || _a === void 0 ? void 0 : _a[0];
+                        throw new Error("load file ".concat(fileName, " error after retry ").concat(this.maxRetry, " times."));
                 }
             });
         });
@@ -1243,7 +1245,7 @@ var Hls2Mp4 = /** @class */ (function () {
         anchor.click();
         setTimeout(function () { return URL.revokeObjectURL(objectUrl); }, 100);
     };
-    Hls2Mp4.version = '1.1.4';
+    Hls2Mp4.version = '1.1.5';
     return Hls2Mp4;
 }());
 

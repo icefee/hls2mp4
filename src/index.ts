@@ -90,7 +90,7 @@ export default class Hls2Mp4 {
     private tsDownloadConcurrency: number;
     private totalSegments = 0;
     private savedSegments = 0;
-    public static version = '1.1.4'
+    public static version = '1.1.5'
 
     constructor({ maxRetry = 3, tsDownloadConcurrency = 10, ...options }: CreateFFmpegOptions & Hls2Mp4Options, onProgress?: ProgressCallback) {
         this.instance = createFFmpeg(options);
@@ -138,7 +138,8 @@ export default class Hls2Mp4 {
         if (done) {
             return data;
         }
-        throw new Error(`load file ${url} error after retry 3 times.`)
+        const fileName = url.match(/\w+\.\w{2,3}$/i)?.[0]
+        throw new Error(`load file ${fileName} error after retry ${this.maxRetry} times.`)
     }
 
     private async downloadSegments(segs: Segment[], key?: Uint8Array, iv?: string) {
