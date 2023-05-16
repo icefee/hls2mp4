@@ -83,7 +83,6 @@ export async function parseM3u8File(url: string, customFetch?: (url: string) => 
 export default class Hls2Mp4 {
 
     private instance: FFmpeg;
-    private ffmpegLoaded = false;
     private maxRetry: number;
     private loadRetryTime = 0;
     private onProgress?: ProgressCallback;
@@ -114,8 +113,19 @@ export default class Hls2Mp4 {
         return buffer.slice(bufferOffset)
     }
 
-    private aesDecrypt(buffer: Uint8Array, keyBuffer: Uint8Array, iv = '') {
-        const aesCbc = new aesjs.ModeOfOperation.cbc(keyBuffer, iv);
+    private hexToUint8Array(hex: string) {
+        return new Uint8Array(
+            hex.replace(/^0x/, '').match(
+                /[\da-f]{2}/gi
+            ).map(hx => parseInt(hx, 16)))
+    }
+
+    private aesDecrypt(buffer: Uint8Array, keyBuffer: Uint8Array, iv?: string) {
+        let ivData: Uint8Array;
+        if (iv) {
+            ivData = iv.startsWith('0x') ? this.hexToUint8Array(iv) : aesjs.utils.utf8.toBytes(iv)
+        }
+        const aesCbc = new aesjs.ModeOfOperation.cbc(keyBuffer, ivData);
         return aesCbc.decrypt(buffer);
     }
 
@@ -199,13 +209,12 @@ export default class Hls2Mp4 {
         }
 
         this.totalSegments = segments.reduce((prev, current) => prev + current.segments.length, 0);
+        this.savedSegments = 0;
         const batch = this.tsDownloadConcurrency;
         let treatedSegments = 0;
 
         for (const group of segments) {
-
             const total = group.segments.length;
-
             let keyBuffer: Uint8Array;
 
             if (group.key) {
@@ -280,10 +289,7 @@ export default class Hls2Mp4 {
     }
 
     public async download(url: string) {
-        if (!this.ffmpegLoaded) {
-            await this.loadFFmpeg();
-            this.ffmpegLoaded = true;
-        }
+        await this.loadFFmpeg();
         const m3u8 = await this.downloadM3u8(url);
         this.onProgress?.(TaskType.mergeTs, 0);
         await this.instance.run('-i', m3u8, '-c', 'copy', 'temp.mp4', '-loglevel', 'debug');

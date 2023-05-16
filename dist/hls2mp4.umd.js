@@ -935,7 +935,6 @@
     var Hls2Mp4 = /** @class */ (function () {
         function Hls2Mp4(_a, onProgress) {
             var _b = _a.maxRetry, maxRetry = _b === void 0 ? 3 : _b, _c = _a.tsDownloadConcurrency, tsDownloadConcurrency = _c === void 0 ? 10 : _c, options = __rest(_a, ["maxRetry", "tsDownloadConcurrency"]);
-            this.ffmpegLoaded = false;
             this.loadRetryTime = 0;
             this.totalSegments = 0;
             this.savedSegments = 0;
@@ -957,9 +956,15 @@
             }
             return buffer.slice(bufferOffset);
         };
+        Hls2Mp4.prototype.hexToUint8Array = function (hex) {
+            return new Uint8Array(hex.replace(/^0x/, '').match(/[\da-f]{2}/gi).map(function (hx) { return parseInt(hx, 16); }));
+        };
         Hls2Mp4.prototype.aesDecrypt = function (buffer, keyBuffer, iv) {
-            if (iv === void 0) { iv = ''; }
-            var aesCbc = new aesjs.ModeOfOperation.cbc(keyBuffer, iv);
+            var ivData;
+            if (iv) {
+                ivData = iv.startsWith('0x') ? this.hexToUint8Array(iv) : aesjs.utils.utf8.toBytes(iv);
+            }
+            var aesCbc = new aesjs.ModeOfOperation.cbc(keyBuffer, ivData);
             return aesCbc.decrypt(buffer);
         };
         Hls2Mp4.prototype.parseM3u8 = function (url) {
@@ -1070,6 +1075,7 @@
                                 }
                             }
                             this.totalSegments = segments.reduce(function (prev, current) { return prev + current.segments.length; }, 0);
+                            this.savedSegments = 0;
                             batch = this.tsDownloadConcurrency;
                             treatedSegments = 0;
                             _c.label = 2;
@@ -1219,19 +1225,15 @@
                 var m3u8, data;
                 return __generator(this, function (_c) {
                     switch (_c.label) {
-                        case 0:
-                            if (!!this.ffmpegLoaded) return [3 /*break*/, 2];
-                            return [4 /*yield*/, this.loadFFmpeg()];
+                        case 0: return [4 /*yield*/, this.loadFFmpeg()];
                         case 1:
                             _c.sent();
-                            this.ffmpegLoaded = true;
-                            _c.label = 2;
-                        case 2: return [4 /*yield*/, this.downloadM3u8(url)];
-                        case 3:
+                            return [4 /*yield*/, this.downloadM3u8(url)];
+                        case 2:
                             m3u8 = _c.sent();
                             (_a = this.onProgress) === null || _a === void 0 ? void 0 : _a.call(this, exports.TaskType.mergeTs, 0);
                             return [4 /*yield*/, this.instance.run('-i', m3u8, '-c', 'copy', 'temp.mp4', '-loglevel', 'debug')];
-                        case 4:
+                        case 3:
                             _c.sent();
                             data = this.instance.FS('readFile', 'temp.mp4');
                             this.instance.exit();
