@@ -1,5 +1,5 @@
 import { createFFmpeg, fetchFile, CreateFFmpegOptions, FFmpeg } from '@ffmpeg/ffmpeg';
-import aesjs from 'aes-js';
+import aesjs, { type ByteSource } from 'aes-js';
 
 export enum TaskType {
     loadFFmeg = 0,
@@ -14,7 +14,7 @@ interface ProgressCallback {
 
 type LoadResult<T = unknown> = {
     done: boolean;
-    data: T;
+    data?: T;
     msg?: string;
 }
 
@@ -64,7 +64,7 @@ export async function parseM3u8File(url: string, customFetch?: (url: string) => 
     }
     else {
         playList = await fetchFile(url).then(
-            data => new Blob([data.buffer]).text()
+            data => aesjs.utils.utf8.fromBytes(data)
         )
     }
     const matchedM3u8 = playList.match(
@@ -89,7 +89,7 @@ export default class Hls2Mp4 {
     private tsDownloadConcurrency: number;
     private totalSegments = 0;
     private savedSegments = 0;
-    public static version = '1.1.5'
+    public static version = '1.1.7'
 
     constructor({ maxRetry = 3, tsDownloadConcurrency = 10, ...options }: CreateFFmpegOptions & Hls2Mp4Options, onProgress?: ProgressCallback) {
         this.instance = createFFmpeg(options);
@@ -114,18 +114,23 @@ export default class Hls2Mp4 {
     }
 
     private hexToUint8Array(hex: string) {
-        return new Uint8Array(
-            hex.replace(/^0x/, '').match(
-                /[\da-f]{2}/gi
-            ).map(hx => parseInt(hx, 16)))
+        const matchedChars = hex.replace(/^0x/, '').match(
+            /[\da-f]{2}/gi
+        );
+        if (matchedChars) {
+            return new Uint8Array(
+                matchedChars.map(hx => parseInt(hx, 16))
+            )
+        }
+        return new Uint8Array(0);
     }
 
     private aesDecrypt(buffer: Uint8Array, keyBuffer: Uint8Array, iv?: string) {
-        let ivData: Uint8Array;
+        let ivData: ByteSource;
         if (iv) {
             ivData = iv.startsWith('0x') ? this.hexToUint8Array(iv) : aesjs.utils.utf8.toBytes(iv)
         }
-        const aesCbc = new aesjs.ModeOfOperation.cbc(keyBuffer, ivData);
+        const aesCbc = new aesjs.ModeOfOperation.cbc(keyBuffer, ivData!);
         return aesCbc.decrypt(buffer);
     }
 
@@ -138,7 +143,7 @@ export default class Hls2Mp4 {
             this.onProgress?.(TaskType.parseM3u8, 1)
             return data;
         }
-        new Error('m3u8 load failed')
+        throw new Error('m3u8 load failed')
     }
 
     private async downloadFile(url: string) {
@@ -156,7 +161,7 @@ export default class Hls2Mp4 {
         return Promise.all(
             segs.map(async ({ name, url, source }) => {
                 const tsData = await this.downloadFile(url)
-                const buffer = key ? this.aesDecrypt(tsData, key, iv) : this.transformBuffer(tsData)
+                const buffer = key ? this.aesDecrypt(tsData!, key, iv) : this.transformBuffer(tsData!)
                 this.instance.FS('writeFile', name, buffer)
                 this.savedSegments += 1
                 this.onProgress?.(TaskType.downloadTs, this.savedSegments / this.totalSegments)
@@ -170,7 +175,8 @@ export default class Hls2Mp4 {
     }
 
     private async downloadM3u8(url: string) {
-        let { content, url: parsedUrl } = await this.parseM3u8(url)
+        const m3u8Parsed = await this.parseM3u8(url)
+        let { content, url: parsedUrl } = m3u8Parsed!;
         const keyMatchRegExp = createFileUrlRegExp('key', 'gi');
         const keyTagMatchRegExp = new RegExp(
             '#EXT-X-KEY:METHOD=(AES-128|NONE)(,URI="' + keyMatchRegExp.source + '"(,IV=\\w+)?)?',
@@ -215,7 +221,7 @@ export default class Hls2Mp4 {
 
         for (const group of segments) {
             const total = group.segments.length;
-            let keyBuffer: Uint8Array;
+            let keyBuffer: Uint8Array | undefined;
 
             if (group.key) {
                 const keyUrl = parseUrl(parsedUrl, group.key)
@@ -270,7 +276,7 @@ export default class Hls2Mp4 {
             }
             return {
                 done: false,
-                data: null
+                data: undefined
             }
         }
     }

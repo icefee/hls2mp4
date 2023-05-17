@@ -914,7 +914,7 @@ function parseM3u8File(url, customFetch) {
                 case 1:
                     playList = _a.sent();
                     return [3 /*break*/, 4];
-                case 2: return [4 /*yield*/, ffmpeg.fetchFile(url).then(function (data) { return new Blob([data.buffer]).text(); })];
+                case 2: return [4 /*yield*/, ffmpeg.fetchFile(url).then(function (data) { return aesjs.utils.utf8.fromBytes(data); })];
                 case 3:
                     playList = _a.sent();
                     _a.label = 4;
@@ -957,7 +957,11 @@ var Hls2Mp4 = /** @class */ (function () {
         return buffer.slice(bufferOffset);
     };
     Hls2Mp4.prototype.hexToUint8Array = function (hex) {
-        return new Uint8Array(hex.replace(/^0x/, '').match(/[\da-f]{2}/gi).map(function (hx) { return parseInt(hx, 16); }));
+        var matchedChars = hex.replace(/^0x/, '').match(/[\da-f]{2}/gi);
+        if (matchedChars) {
+            return new Uint8Array(matchedChars.map(function (hx) { return parseInt(hx, 16); }));
+        }
+        return new Uint8Array(0);
     };
     Hls2Mp4.prototype.aesDecrypt = function (buffer, keyBuffer, iv) {
         var ivData;
@@ -982,7 +986,7 @@ var Hls2Mp4 = /** @class */ (function () {
                             (_b = this.onProgress) === null || _b === void 0 ? void 0 : _b.call(this, exports.TaskType.parseM3u8, 1);
                             return [2 /*return*/, data];
                         }
-                        return [2 /*return*/];
+                        throw new Error('m3u8 load failed');
                 }
             });
         });
@@ -1037,13 +1041,14 @@ var Hls2Mp4 = /** @class */ (function () {
     };
     Hls2Mp4.prototype.downloadM3u8 = function (url) {
         return __awaiter(this, void 0, void 0, function () {
-            var _a, content, parsedUrl, keyMatchRegExp, keyTagMatchRegExp, matchReg, matches, segments, i, matched, matchedKey, matchedIV, batch, treatedSegments, segments_1, segments_1_1, group, total, keyBuffer, keyUrl, _loop_1, this_1, i, e_1_1, m3u8;
+            var m3u8Parsed, _a, content, parsedUrl, keyMatchRegExp, keyTagMatchRegExp, matchReg, matches, segments, i, matched, matchedKey, matchedIV, batch, treatedSegments, segments_1, segments_1_1, group, total, keyBuffer, keyUrl, _loop_1, this_1, i, e_1_1, m3u8;
             var e_1, _b;
             return __generator(this, function (_c) {
                 switch (_c.label) {
                     case 0: return [4 /*yield*/, this.parseM3u8(url)];
                     case 1:
-                        _a = _c.sent(), content = _a.content, parsedUrl = _a.url;
+                        m3u8Parsed = _c.sent();
+                        _a = m3u8Parsed, content = _a.content, parsedUrl = _a.url;
                         keyMatchRegExp = createFileUrlRegExp('key', 'gi');
                         keyTagMatchRegExp = new RegExp('#EXT-X-KEY:METHOD=(AES-128|NONE)(,URI="' + keyMatchRegExp.source + '"(,IV=\\w+)?)?', 'gi');
                         matchReg = new RegExp(keyTagMatchRegExp.source + '|' + createFileUrlRegExp('ts', 'gi').source, 'g');
@@ -1189,7 +1194,7 @@ var Hls2Mp4 = /** @class */ (function () {
                         }
                         return [2 /*return*/, {
                                 done: false,
-                                data: null
+                                data: undefined
                             }];
                     case 3: return [2 /*return*/];
                 }
@@ -1251,7 +1256,7 @@ var Hls2Mp4 = /** @class */ (function () {
         anchor.click();
         setTimeout(function () { return URL.revokeObjectURL(objectUrl); }, 100);
     };
-    Hls2Mp4.version = '1.1.5';
+    Hls2Mp4.version = '1.1.7';
     return Hls2Mp4;
 }());
 
