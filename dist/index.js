@@ -1,4 +1,4 @@
-import { createFFmpeg, fetchFile } from '@ffmpeg/ffmpeg';
+import FFmpeg from '@ffmpeg/ffmpeg';
 
 /******************************************************************************
 Copyright (c) Microsoft Corporation.
@@ -882,6 +882,7 @@ var aesJs = {exports: {}};
 var aesJsExports = aesJs.exports;
 var aesjs = /*@__PURE__*/getDefaultExportFromCjs(aesJsExports);
 
+var createFFmpeg = FFmpeg.createFFmpeg, fetchFile = FFmpeg.fetchFile;
 var TaskType;
 (function (TaskType) {
     TaskType[TaskType["loadFFmeg"] = 0] = "loadFFmeg";
@@ -897,36 +898,6 @@ function parseUrl(url, path) {
         return path;
     }
     return new URL(path, url).href;
-}
-function parseM3u8File(url, customFetch) {
-    return __awaiter(this, void 0, void 0, function () {
-        var playList, matchedM3u8, parsedUrl;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    playList = '';
-                    if (!customFetch) return [3 /*break*/, 2];
-                    return [4 /*yield*/, customFetch(url)];
-                case 1:
-                    playList = _a.sent();
-                    return [3 /*break*/, 4];
-                case 2: return [4 /*yield*/, fetchFile(url).then(function (data) { return aesjs.utils.utf8.fromBytes(data); })];
-                case 3:
-                    playList = _a.sent();
-                    _a.label = 4;
-                case 4:
-                    matchedM3u8 = playList.match(createFileUrlRegExp('m3u8', 'i'));
-                    if (matchedM3u8) {
-                        parsedUrl = parseUrl(url, matchedM3u8[0]);
-                        return [2 /*return*/, parseM3u8File(parsedUrl, customFetch)];
-                    }
-                    return [2 /*return*/, {
-                            url: url,
-                            content: playList
-                        }];
-            }
-        });
-    });
 }
 var Hls2Mp4 = /** @class */ (function () {
     function Hls2Mp4(_a, onProgress) {
@@ -967,6 +938,36 @@ var Hls2Mp4 = /** @class */ (function () {
         var aesCbc = new aesjs.ModeOfOperation.cbc(keyBuffer, ivData);
         return aesCbc.decrypt(buffer);
     };
+    Hls2Mp4.parseM3u8File = function (url, customFetch) {
+        return __awaiter(this, void 0, void 0, function () {
+            var playList, matchedM3u8, parsedUrl;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        playList = '';
+                        if (!customFetch) return [3 /*break*/, 2];
+                        return [4 /*yield*/, customFetch(url)];
+                    case 1:
+                        playList = _a.sent();
+                        return [3 /*break*/, 4];
+                    case 2: return [4 /*yield*/, fetchFile(url).then(function (data) { return aesjs.utils.utf8.fromBytes(data); })];
+                    case 3:
+                        playList = _a.sent();
+                        _a.label = 4;
+                    case 4:
+                        matchedM3u8 = playList.match(createFileUrlRegExp('m3u8', 'i'));
+                        if (matchedM3u8) {
+                            parsedUrl = parseUrl(url, matchedM3u8[0]);
+                            return [2 /*return*/, this.parseM3u8File(parsedUrl, customFetch)];
+                        }
+                        return [2 /*return*/, {
+                                url: url,
+                                content: playList
+                            }];
+                }
+            });
+        });
+    };
     Hls2Mp4.prototype.parseM3u8 = function (url) {
         var _a, _b;
         return __awaiter(this, void 0, void 0, function () {
@@ -975,7 +976,7 @@ var Hls2Mp4 = /** @class */ (function () {
                 switch (_d.label) {
                     case 0:
                         (_a = this.onProgress) === null || _a === void 0 ? void 0 : _a.call(this, TaskType.parseM3u8, 0);
-                        return [4 /*yield*/, this.loopLoadFile(function () { return parseM3u8File(url); })];
+                        return [4 /*yield*/, this.loopLoadFile(function () { return Hls2Mp4.parseM3u8File(url); })];
                     case 1:
                         _c = _d.sent(), done = _c.done, data = _c.data;
                         if (done) {
@@ -1252,8 +1253,9 @@ var Hls2Mp4 = /** @class */ (function () {
         anchor.click();
         setTimeout(function () { return URL.revokeObjectURL(objectUrl); }, 100);
     };
-    Hls2Mp4.version = '1.1.7';
+    Hls2Mp4.version = '1.1.8';
+    Hls2Mp4.TaskType = TaskType;
     return Hls2Mp4;
 }());
 
-export { TaskType, createFileUrlRegExp, Hls2Mp4 as default, parseM3u8File };
+export { Hls2Mp4 as default };

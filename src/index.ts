@@ -1,7 +1,9 @@
-import { createFFmpeg, fetchFile, CreateFFmpegOptions, FFmpeg } from '@ffmpeg/ffmpeg';
+import FFmpeg, { type CreateFFmpegOptions, type FFmpeg as FFmpegInstance } from '@ffmpeg/ffmpeg';
 import aesjs, { type ByteSource } from 'aes-js';
 
-export enum TaskType {
+const { createFFmpeg, fetchFile } = FFmpeg;
+
+enum TaskType {
     loadFFmeg = 0,
     parseM3u8 = 1,
     downloadTs = 2,
@@ -46,7 +48,7 @@ type SegmentGroup = {
     segments: string[];
 }
 
-export function createFileUrlRegExp(ext: string, flags?: string) {
+function createFileUrlRegExp(ext: string, flags?: string) {
     return new RegExp('(https?://)?[\\w:\\.\\-\\/]+?\\.' + ext, flags)
 }
 
@@ -57,39 +59,17 @@ function parseUrl(url: string, path: string) {
     return new URL(path, url).href;
 }
 
-export async function parseM3u8File(url: string, customFetch?: (url: string) => Promise<string>): Promise<M3u8Parsed> {
-    let playList = '';
-    if (customFetch) {
-        playList = await customFetch(url)
-    }
-    else {
-        playList = await fetchFile(url).then(
-            data => aesjs.utils.utf8.fromBytes(data)
-        )
-    }
-    const matchedM3u8 = playList.match(
-        createFileUrlRegExp('m3u8', 'i')
-    )
-    if (matchedM3u8) {
-        const parsedUrl = parseUrl(url, matchedM3u8[0])
-        return parseM3u8File(parsedUrl, customFetch)
-    }
-    return {
-        url,
-        content: playList
-    }
-}
+class Hls2Mp4 {
 
-export default class Hls2Mp4 {
-
-    private instance: FFmpeg;
+    private instance: FFmpegInstance;
     private maxRetry: number;
     private loadRetryTime = 0;
     private onProgress?: ProgressCallback;
     private tsDownloadConcurrency: number;
     private totalSegments = 0;
     private savedSegments = 0;
-    public static version = '1.1.7'
+    public static version = '1.1.8';
+    public static TaskType = TaskType;
 
     constructor({ maxRetry = 3, tsDownloadConcurrency = 10, ...options }: CreateFFmpegOptions & Hls2Mp4Options, onProgress?: ProgressCallback) {
         this.instance = createFFmpeg(options);
@@ -134,10 +114,33 @@ export default class Hls2Mp4 {
         return aesCbc.decrypt(buffer);
     }
 
+    public static async parseM3u8File(url: string, customFetch?: (url: string) => Promise<string>): Promise<M3u8Parsed> {
+        let playList = '';
+        if (customFetch) {
+            playList = await customFetch(url)
+        }
+        else {
+            playList = await fetchFile(url).then(
+                data => aesjs.utils.utf8.fromBytes(data)
+            )
+        }
+        const matchedM3u8 = playList.match(
+            createFileUrlRegExp('m3u8', 'i')
+        )
+        if (matchedM3u8) {
+            const parsedUrl = parseUrl(url, matchedM3u8[0])
+            return this.parseM3u8File(parsedUrl, customFetch)
+        }
+        return {
+            url,
+            content: playList
+        }
+    }
+
     private async parseM3u8(url: string) {
         this.onProgress?.(TaskType.parseM3u8, 0)
         const { done, data } = await this.loopLoadFile<M3u8Parsed>(
-            () => parseM3u8File(url)
+            () => Hls2Mp4.parseM3u8File(url)
         )
         if (done) {
             this.onProgress?.(TaskType.parseM3u8, 1)
@@ -314,3 +317,5 @@ export default class Hls2Mp4 {
         setTimeout(() => URL.revokeObjectURL(objectUrl), 100);
     }
 }
+
+export default Hls2Mp4;

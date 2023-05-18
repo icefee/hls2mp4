@@ -10,6 +10,10 @@ npm install @ffmpeg/ffmpeg @ffmpeg/core
 
 ##### for more information, see [https://github.com/ffmpegwasm/ffmpeg.wasm](https://github.com/ffmpegwasm/ffmpeg.wasm)
 
+### online demo
+
+[online demo](https://code-app.netlify.app/hls2mp4/)
+
 ### install
 
 ```shell

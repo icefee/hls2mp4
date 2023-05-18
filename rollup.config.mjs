@@ -16,13 +16,17 @@ export default {
         {
             name: 'Hls2Mp4',
             format: 'umd',
-            file: './dist/hls2mp4.umd.js'
+            file: './dist/hls2mp4.umd.js',
+            globals: {
+                '@ffmpeg/ffmpeg': 'FFmpeg'
+            }
         },
         {
             format: 'cjs',
             file: './dist/hls2mp4.cjs'
         },
         {
+            name: 'Hls2Mp4',
             format: 'iife',
             file: './dist/hls2mp4.js',
             globals: {

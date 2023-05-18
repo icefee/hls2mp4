@@ -1,5 +1,5 @@
-import { CreateFFmpegOptions } from '@ffmpeg/ffmpeg';
-export declare enum TaskType {
+import { type CreateFFmpegOptions } from '@ffmpeg/ffmpeg';
+declare enum TaskType {
     loadFFmeg = 0,
     parseM3u8 = 1,
     downloadTs = 2,
@@ -22,9 +22,7 @@ export interface M3u8Parsed {
     url: string;
     content: string;
 }
-export declare function createFileUrlRegExp(ext: string, flags?: string): RegExp;
-export declare function parseM3u8File(url: string, customFetch?: (url: string) => Promise<string>): Promise<M3u8Parsed>;
-export default class Hls2Mp4 {
+declare class Hls2Mp4 {
     private instance;
     private maxRetry;
     private loadRetryTime;
@@ -33,10 +31,12 @@ export default class Hls2Mp4 {
     private totalSegments;
     private savedSegments;
     static version: string;
+    static TaskType: typeof TaskType;
     constructor({ maxRetry, tsDownloadConcurrency, ...options }: CreateFFmpegOptions & Hls2Mp4Options, onProgress?: ProgressCallback);
     private transformBuffer;
     private hexToUint8Array;
     private aesDecrypt;
+    static parseM3u8File(url: string, customFetch?: (url: string) => Promise<string>): Promise<M3u8Parsed>;
     private parseM3u8;
     private downloadFile;
     private downloadSegments;
@@ -46,4 +46,4 @@ export default class Hls2Mp4 {
     download(url: string): Promise<ArrayBufferLike>;
     saveToFile(buffer: ArrayBufferLike, filename: string): void;
 }
-export {};
+export default Hls2Mp4;

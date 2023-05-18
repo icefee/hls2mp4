@@ -1,4 +1,4 @@
-(function (exports, ffmpeg) {
+var Hls2Mp4 = (function (FFmpeg) {
     'use strict';
 
     /******************************************************************************
@@ -883,13 +883,14 @@
     var aesJsExports = aesJs.exports;
     var aesjs = /*@__PURE__*/getDefaultExportFromCjs(aesJsExports);
 
-    exports.TaskType = void 0;
+    var createFFmpeg = FFmpeg.createFFmpeg, fetchFile = FFmpeg.fetchFile;
+    var TaskType;
     (function (TaskType) {
         TaskType[TaskType["loadFFmeg"] = 0] = "loadFFmeg";
         TaskType[TaskType["parseM3u8"] = 1] = "parseM3u8";
         TaskType[TaskType["downloadTs"] = 2] = "downloadTs";
         TaskType[TaskType["mergeTs"] = 3] = "mergeTs";
-    })(exports.TaskType || (exports.TaskType = {}));
+    })(TaskType || (TaskType = {}));
     function createFileUrlRegExp(ext, flags) {
         return new RegExp('(https?://)?[\\w:\\.\\-\\/]+?\\.' + ext, flags);
     }
@@ -899,43 +900,13 @@
         }
         return new URL(path, url).href;
     }
-    function parseM3u8File(url, customFetch) {
-        return __awaiter(this, void 0, void 0, function () {
-            var playList, matchedM3u8, parsedUrl;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        playList = '';
-                        if (!customFetch) return [3 /*break*/, 2];
-                        return [4 /*yield*/, customFetch(url)];
-                    case 1:
-                        playList = _a.sent();
-                        return [3 /*break*/, 4];
-                    case 2: return [4 /*yield*/, ffmpeg.fetchFile(url).then(function (data) { return aesjs.utils.utf8.fromBytes(data); })];
-                    case 3:
-                        playList = _a.sent();
-                        _a.label = 4;
-                    case 4:
-                        matchedM3u8 = playList.match(createFileUrlRegExp('m3u8', 'i'));
-                        if (matchedM3u8) {
-                            parsedUrl = parseUrl(url, matchedM3u8[0]);
-                            return [2 /*return*/, parseM3u8File(parsedUrl, customFetch)];
-                        }
-                        return [2 /*return*/, {
-                                url: url,
-                                content: playList
-                            }];
-                }
-            });
-        });
-    }
     var Hls2Mp4 = /** @class */ (function () {
         function Hls2Mp4(_a, onProgress) {
             var _b = _a.maxRetry, maxRetry = _b === void 0 ? 3 : _b, _c = _a.tsDownloadConcurrency, tsDownloadConcurrency = _c === void 0 ? 10 : _c, options = __rest(_a, ["maxRetry", "tsDownloadConcurrency"]);
             this.loadRetryTime = 0;
             this.totalSegments = 0;
             this.savedSegments = 0;
-            this.instance = ffmpeg.createFFmpeg(options);
+            this.instance = createFFmpeg(options);
             this.maxRetry = maxRetry;
             this.onProgress = onProgress;
             this.tsDownloadConcurrency = tsDownloadConcurrency;
@@ -968,6 +939,36 @@
             var aesCbc = new aesjs.ModeOfOperation.cbc(keyBuffer, ivData);
             return aesCbc.decrypt(buffer);
         };
+        Hls2Mp4.parseM3u8File = function (url, customFetch) {
+            return __awaiter(this, void 0, void 0, function () {
+                var playList, matchedM3u8, parsedUrl;
+                return __generator(this, function (_a) {
+                    switch (_a.label) {
+                        case 0:
+                            playList = '';
+                            if (!customFetch) return [3 /*break*/, 2];
+                            return [4 /*yield*/, customFetch(url)];
+                        case 1:
+                            playList = _a.sent();
+                            return [3 /*break*/, 4];
+                        case 2: return [4 /*yield*/, fetchFile(url).then(function (data) { return aesjs.utils.utf8.fromBytes(data); })];
+                        case 3:
+                            playList = _a.sent();
+                            _a.label = 4;
+                        case 4:
+                            matchedM3u8 = playList.match(createFileUrlRegExp('m3u8', 'i'));
+                            if (matchedM3u8) {
+                                parsedUrl = parseUrl(url, matchedM3u8[0]);
+                                return [2 /*return*/, this.parseM3u8File(parsedUrl, customFetch)];
+                            }
+                            return [2 /*return*/, {
+                                    url: url,
+                                    content: playList
+                                }];
+                    }
+                });
+            });
+        };
         Hls2Mp4.prototype.parseM3u8 = function (url) {
             var _a, _b;
             return __awaiter(this, void 0, void 0, function () {
@@ -975,12 +976,12 @@
                 return __generator(this, function (_d) {
                     switch (_d.label) {
                         case 0:
-                            (_a = this.onProgress) === null || _a === void 0 ? void 0 : _a.call(this, exports.TaskType.parseM3u8, 0);
-                            return [4 /*yield*/, this.loopLoadFile(function () { return parseM3u8File(url); })];
+                            (_a = this.onProgress) === null || _a === void 0 ? void 0 : _a.call(this, TaskType.parseM3u8, 0);
+                            return [4 /*yield*/, this.loopLoadFile(function () { return Hls2Mp4.parseM3u8File(url); })];
                         case 1:
                             _c = _d.sent(), done = _c.done, data = _c.data;
                             if (done) {
-                                (_b = this.onProgress) === null || _b === void 0 ? void 0 : _b.call(this, exports.TaskType.parseM3u8, 1);
+                                (_b = this.onProgress) === null || _b === void 0 ? void 0 : _b.call(this, TaskType.parseM3u8, 1);
                                 return [2 /*return*/, data];
                             }
                             throw new Error('m3u8 load failed');
@@ -994,7 +995,7 @@
                 var _b, done, data, fileName;
                 return __generator(this, function (_c) {
                     switch (_c.label) {
-                        case 0: return [4 /*yield*/, this.loopLoadFile(function () { return ffmpeg.fetchFile(url); })];
+                        case 0: return [4 /*yield*/, this.loopLoadFile(function () { return fetchFile(url); })];
                         case 1:
                             _b = _c.sent(), done = _b.done, data = _b.data;
                             if (done) {
@@ -1023,7 +1024,7 @@
                                             buffer = key ? this.aesDecrypt(tsData, key, iv) : this.transformBuffer(tsData);
                                             this.instance.FS('writeFile', name, buffer);
                                             this.savedSegments += 1;
-                                            (_b = this.onProgress) === null || _b === void 0 ? void 0 : _b.call(this, exports.TaskType.downloadTs, this.savedSegments / this.totalSegments);
+                                            (_b = this.onProgress) === null || _b === void 0 ? void 0 : _b.call(this, TaskType.downloadTs, this.savedSegments / this.totalSegments);
                                             return [2 /*return*/, {
                                                     source: source,
                                                     url: url,
@@ -1206,12 +1207,12 @@
                 return __generator(this, function (_c) {
                     switch (_c.label) {
                         case 0:
-                            (_a = this.onProgress) === null || _a === void 0 ? void 0 : _a.call(this, exports.TaskType.loadFFmeg, 0);
+                            (_a = this.onProgress) === null || _a === void 0 ? void 0 : _a.call(this, TaskType.loadFFmeg, 0);
                             return [4 /*yield*/, this.loopLoadFile(function () { return _this.instance.load(); })];
                         case 1:
                             done = (_c.sent()).done;
                             if (done) {
-                                (_b = this.onProgress) === null || _b === void 0 ? void 0 : _b.call(this, exports.TaskType.loadFFmeg, done ? 1 : -1);
+                                (_b = this.onProgress) === null || _b === void 0 ? void 0 : _b.call(this, TaskType.loadFFmeg, done ? 1 : -1);
                             }
                             else {
                                 throw new Error('FFmpeg load failed');
@@ -1233,13 +1234,13 @@
                             return [4 /*yield*/, this.downloadM3u8(url)];
                         case 2:
                             m3u8 = _c.sent();
-                            (_a = this.onProgress) === null || _a === void 0 ? void 0 : _a.call(this, exports.TaskType.mergeTs, 0);
+                            (_a = this.onProgress) === null || _a === void 0 ? void 0 : _a.call(this, TaskType.mergeTs, 0);
                             return [4 /*yield*/, this.instance.run('-i', m3u8, '-c', 'copy', 'temp.mp4', '-loglevel', 'debug')];
                         case 3:
                             _c.sent();
                             data = this.instance.FS('readFile', 'temp.mp4');
                             this.instance.exit();
-                            (_b = this.onProgress) === null || _b === void 0 ? void 0 : _b.call(this, exports.TaskType.mergeTs, 1);
+                            (_b = this.onProgress) === null || _b === void 0 ? void 0 : _b.call(this, TaskType.mergeTs, 1);
                             return [2 /*return*/, data.buffer];
                     }
                 });
@@ -1253,16 +1254,11 @@
             anchor.click();
             setTimeout(function () { return URL.revokeObjectURL(objectUrl); }, 100);
         };
-        Hls2Mp4.version = '1.1.7';
+        Hls2Mp4.version = '1.1.8';
+        Hls2Mp4.TaskType = TaskType;
         return Hls2Mp4;
     }());
 
-    exports.createFileUrlRegExp = createFileUrlRegExp;
-    exports.default = Hls2Mp4;
-    exports.parseM3u8File = parseM3u8File;
+    return Hls2Mp4;
 
-    Object.defineProperty(exports, '__esModule', { value: true });
-
-    return exports;
-
-})({}, FFmpeg);
+})(FFmpeg);
