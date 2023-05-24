@@ -194,26 +194,24 @@ class Hls2Mp4 {
             throw new Error('Invalid m3u8 file, no ts file found')
         }
         const segments: SegmentGroup[] = []
-        if (matches) {
-            for (let i = 0; i < matches.length; i++) {
-                const matched = matches[i]
-                if (matched.match(/#EXT-X-KEY/)) {
-                    const matchedKey = matched.match(keyMatchRegExp)
-                    const matchedIV = matched.match(/(?<=IV=)\w+$/)
-                    segments.push({
-                        key: matchedKey?.[0],
-                        iv: matchedIV?.[0],
-                        segments: []
-                    })
-                }
-                else if (i === 0) {
-                    segments.push({
-                        segments: [matched]
-                    })
-                }
-                else {
-                    segments[segments.length - 1].segments.push(matched)
-                }
+        for (let i = 0; i < matches.length; i++) {
+            const matched = matches[i]
+            if (matched.match(/#EXT-X-KEY/)) {
+                const matchedKey = matched.match(keyMatchRegExp)
+                const matchedIV = matched.match(/(?<=IV=)\w+$/)
+                segments.push({
+                    key: matchedKey?.[0],
+                    iv: matchedIV?.[0],
+                    segments: []
+                })
+            }
+            else if (i === 0) {
+                segments.push({
+                    segments: [matched]
+                })
+            }
+            else {
+                segments[segments.length - 1].segments.push(matched)
             }
         }
 
