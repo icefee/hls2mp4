@@ -22,7 +22,14 @@ yarn add hls2mp4
 import Hls2Mp4 from "hls2mp4";
 
 const hls2mp4 = new Hls2Mp4({
-  log: true
+  /**
+   * max retry times while request data failed, default: 3
+  */
+  maxRetry?: number;
+  /**
+   * the concurrency for download ts segment, default: 10
+  */
+  tsDownloadConcurrency?: number;
 }, (type, progress) => {
   // type = 0  => load FFmpeg
   // type = 1  => parse m3u8

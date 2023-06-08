@@ -25,7 +25,7 @@ type Hls2Mp4Options = {
      */
     maxRetry?: number;
     /**
-     * the concurrency for download ts
+     * the concurrency for download ts segment
      */
     tsDownloadConcurrency?: number;
 }
@@ -66,7 +66,7 @@ class Hls2Mp4 {
     private totalSegments = 0;
     private duration = 0;
     private savedSegments = new Map<number, Uint8Array>()
-    public static version = '2.0.2';
+    public static version = '2.0.3';
     public static TaskType = TaskType;
 
     constructor({ maxRetry = 3, tsDownloadConcurrency = 10 }: Hls2Mp4Options, onProgress?: ProgressCallback) {
