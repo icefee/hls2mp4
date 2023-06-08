@@ -1,7 +1,6 @@
-import FFmpeg, { type CreateFFmpegOptions, type FFmpeg as FFmpegInstance } from '@ffmpeg/ffmpeg';
+import Transmuxer from './muxer/mp4-transmuxer';
 import aesjs, { type ByteSource } from 'aes-js';
-
-const { createFFmpeg, fetchFile } = FFmpeg;
+import { fetchFile } from './util/http'
 
 enum TaskType {
     loadFFmeg = 0,
@@ -32,9 +31,8 @@ type Hls2Mp4Options = {
 }
 
 type Segment = {
-    source: string;
+    index: number;
     url: string;
-    name: string;
 }
 
 export interface M3u8Parsed {
@@ -61,18 +59,17 @@ function parseUrl(url: string, path: string) {
 
 class Hls2Mp4 {
 
-    private instance: FFmpegInstance;
     private maxRetry: number;
     private loadRetryTime = 0;
     private onProgress?: ProgressCallback;
     private tsDownloadConcurrency: number;
     private totalSegments = 0;
-    private savedSegments = 0;
-    public static version = '1.1.8';
+    private duration = 0;
+    private savedSegments = new Map<number, Uint8Array>()
+    public static version = '2.0';
     public static TaskType = TaskType;
 
-    constructor({ maxRetry = 3, tsDownloadConcurrency = 10, ...options }: CreateFFmpegOptions & Hls2Mp4Options, onProgress?: ProgressCallback) {
-        this.instance = createFFmpeg(options);
+    constructor({ maxRetry = 3, tsDownloadConcurrency = 10 }: Hls2Mp4Options, onProgress?: ProgressCallback) {
         this.maxRetry = maxRetry;
         this.onProgress = onProgress;
         this.tsDownloadConcurrency = tsDownloadConcurrency;
@@ -162,19 +159,27 @@ class Hls2Mp4 {
 
     private async downloadSegments(segs: Segment[], key?: Uint8Array, iv?: string) {
         return Promise.all(
-            segs.map(async ({ name, url, source }) => {
+            segs.map(async ({ index, url }) => {
                 const tsData = await this.downloadFile(url)
                 const buffer = key ? this.aesDecrypt(tsData!, key, iv) : this.transformBuffer(tsData!)
-                this.instance.FS('writeFile', name, buffer)
-                this.savedSegments += 1
-                this.onProgress?.(TaskType.downloadTs, this.savedSegments / this.totalSegments)
-                return {
-                    source,
-                    url,
-                    name
-                }
+                this.savedSegments.set(index, buffer)
+                this.onProgress?.(TaskType.downloadTs, this.savedSegments.size / this.totalSegments)
             })
         )
+    }
+
+    private computeTotalDuration(content: string) {
+        let duration = 0;
+        const tags = content.match(/#EXTINF:\d+(.\d+)?/gi)
+        tags?.forEach(
+            tag => {
+                const dur = tag.match(/\d+(.\d+)?/)
+                if (dur) {
+                    duration += Number(dur[0]);
+                }
+            }
+        )
+        return duration;
     }
 
     private async downloadM3u8(url: string) {
@@ -193,6 +198,9 @@ class Hls2Mp4 {
         if (!matches) {
             throw new Error('Invalid m3u8 file, no ts file found')
         }
+
+        this.duration = this.computeTotalDuration(content)
+
         const segments: SegmentGroup[] = []
         for (let i = 0; i < matches.length; i++) {
             const matched = matches[i]
@@ -216,7 +224,6 @@ class Hls2Mp4 {
         }
 
         this.totalSegments = segments.reduce((prev, current) => prev + current.segments.length, 0);
-        this.savedSegments = 0;
         const batch = this.tsDownloadConcurrency;
         let treatedSegments = 0;
 
@@ -231,34 +238,25 @@ class Hls2Mp4 {
 
             for (let i = 0; i <= Math.floor((total / batch)); i++) {
 
-                const downloadSegs = await this.downloadSegments(
+                await this.downloadSegments(
                     group.segments.slice(
                         i * batch,
                         Math.min(total, (i + 1) * batch)
                     ).map<Segment>(
                         (seg, j) => {
                             const url = parseUrl(parsedUrl, seg)
-                            const name = `seg-${treatedSegments + i * batch + j}.ts`
                             return {
-                                source: seg,
-                                url,
-                                name
+                                index: treatedSegments + i * batch + j,
+                                url
                             }
                         }
                     ),
                     keyBuffer,
                     group.iv
                 )
-                for (const { source, name } of downloadSegs) {
-                    content = content.replace(source, name)
-                }
             }
             treatedSegments += total;
         }
-        content = content.replace(keyTagMatchRegExp, '')
-        const m3u8 = 'temp.m3u8'
-        this.instance.FS('writeFile', m3u8, content)
-        return m3u8
     }
 
     private async loopLoadFile<T = undefined>(startLoad: () => PromiseLike<T | undefined>): Promise<LoadResult<T>> {
@@ -282,28 +280,84 @@ class Hls2Mp4 {
         }
     }
 
-    private async loadFFmpeg() {
-        this.onProgress?.(TaskType.loadFFmeg, 0)
-        const { done } = await this.loopLoadFile(
-            () => this.instance.load()
+    private mergeDataArray(data: Uint8Array[]) {
+
+        const totalByteLength = data.reduce(
+            (prev, current) => prev + current.byteLength,
+            0
         )
-        if (done) {
-            this.onProgress?.(TaskType.loadFFmeg, done ? 1 : -1);
+        const dataArray = new Uint8Array(totalByteLength)
+        let byteOffset = 0;
+
+        for (const part of data) {
+            dataArray.set(part, byteOffset)
+            byteOffset += part.byteLength
         }
-        else {
-            throw new Error('FFmpeg load failed')
+
+        return dataArray
+    }
+
+    private async transmuxerSegments() {
+
+        this.onProgress?.(TaskType.mergeTs, 0);
+
+        const transmuxer = new Transmuxer({
+            duration: this.duration
+        })
+
+        const transmuxerFirstSegment = (data: Uint8Array) => {
+            return new Promise<Uint8Array>(
+                (resolve) => {
+                    transmuxer.on('data', (segment) => {
+                        const data = new Uint8Array(segment.initSegment.byteLength + segment.data.byteLength);
+                        data.set(segment.initSegment, 0);
+                        data.set(segment.data, segment.initSegment.byteLength);
+                        resolve(data);
+                    })
+                    transmuxer.push(data)
+                    transmuxer.flush()
+                }
+            )
         }
+
+        const transmuxerSegment = (buffer: Uint8Array) => {
+            return new Promise<Uint8Array>(
+                (resolve) => {
+                    transmuxer.off('data')
+                    transmuxer.on('data', (segment) => resolve(segment.data))
+                    transmuxer.push(buffer)
+                    transmuxer.flush()
+                }
+            )
+        }
+
+        let chunks: Uint8Array[] = []
+
+        for (let i = 0; i < this.savedSegments.size; i++) {
+
+            const segment = this.savedSegments.get(i)
+            let chunk: Uint8Array;
+
+            if (i === 0) {
+                chunk = await transmuxerFirstSegment(segment!)
+            }
+            else {
+                chunk = await transmuxerSegment(segment!)
+            }
+            chunks.push(chunk);
+        }
+
+        const data = this.mergeDataArray(chunks)
+
+        this.onProgress?.(TaskType.mergeTs, 1);
+
+        return data;
     }
 
     public async download(url: string) {
-        await this.loadFFmpeg();
-        const m3u8 = await this.downloadM3u8(url);
-        this.onProgress?.(TaskType.mergeTs, 0);
-        await this.instance.run('-i', m3u8, '-c', 'copy', 'temp.mp4', '-loglevel', 'debug');
-        const data = this.instance.FS('readFile', 'temp.mp4');
-        this.instance.exit();
-        this.onProgress?.(TaskType.mergeTs, 1);
-        return data.buffer;
+        await this.downloadM3u8(url);
+        const data = await this.transmuxerSegments()
+        return data;
     }
 
     public saveToFile(buffer: ArrayBufferLike, filename: string) {

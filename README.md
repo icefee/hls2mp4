@@ -1,14 +1,6 @@
 ### A tool for download hls/m3u8 to mp4
 
-#### This package depends on @ffmpeg/ffmpeg, you need install it first
-
-```shell
-# install ffmpeg
-npm install @ffmpeg/ffmpeg @ffmpeg/core
-
-```
-
-##### for more information, see [https://github.com/ffmpegwasm/ffmpeg.wasm](https://github.com/ffmpegwasm/ffmpeg.wasm)
+#### no longer depend on @ffmpeg/ffmpeg since version 2.0
 
 ### online demo
 
@@ -44,7 +36,6 @@ hls2mp4.saveToFile(buffer, 'test.mp4')
 
 #### as script
 ```html
-<script src="static/js/ffmpeg.min.js"></script>
 <script src="dist/hls2mp4.js"></script>
 <script>
   const hls2mp4 = new Hls2Mp4({...})
