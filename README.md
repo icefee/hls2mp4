@@ -33,7 +33,7 @@ const hls2mp4 = new Hls2Mp4({
   /**
    * the type of output file, can be mp4 or ts, default: mp4
    */
-  outputType?: OutputType;
+  outputType?: 'mp4' | 'ts';
   
 }, (type, progress) => {
   // type = 0  => load FFmpeg
