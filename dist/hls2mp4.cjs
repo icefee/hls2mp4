@@ -930,9 +930,12 @@ var mp4Transmuxer = {exports: {}};
 	    moof: moof,
 	    moov: moov,
 	    initSegment: function initSegment(tracks) {
-	      var duration = tracks.reduce(function (p, n) {
-	        return p + n.duration;
-	      }, 0);
+	      var duration = 0;
+	      for (var i = 0; i < tracks.length; i++) {
+	        if (tracks[i].type === 'video') {
+	          duration = tracks[i].duration;
+	        }
+	      }
 	      var fileType = ftyp(),
 	        movie = moov(tracks, duration),
 	        result;
@@ -6355,11 +6358,11 @@ var mp4Transmuxer = {exports: {}};
 	          while (i--) {
 	            if (!videoTrack && data.tracks[i].type === 'video') {
 	              videoTrack = data.tracks[i];
-	              videoTrack.duration = pipeline.duration / 2;
+	              videoTrack.duration = pipeline.duration;
 	              videoTrack.timelineStartInfo.baseMediaDecodeTime = self.baseMediaDecodeTime;
 	            } else if (!audioTrack && data.tracks[i].type === 'audio') {
 	              audioTrack = data.tracks[i];
-	              audioTrack.duration = pipeline.duration / 2;
+	              audioTrack.duration = pipeline.duration;
 	              audioTrack.timelineStartInfo.baseMediaDecodeTime = self.baseMediaDecodeTime;
 	            }
 	          }
@@ -7343,10 +7346,9 @@ function fetchFile(url) {
 
 var TaskType;
 (function (TaskType) {
-    TaskType[TaskType["loadFFmeg"] = 0] = "loadFFmeg";
-    TaskType[TaskType["parseM3u8"] = 1] = "parseM3u8";
-    TaskType[TaskType["downloadTs"] = 2] = "downloadTs";
-    TaskType[TaskType["mergeTs"] = 3] = "mergeTs";
+    TaskType[TaskType["parseM3u8"] = 0] = "parseM3u8";
+    TaskType[TaskType["downloadTs"] = 1] = "downloadTs";
+    TaskType[TaskType["mergeTs"] = 2] = "mergeTs";
 })(TaskType || (TaskType = {}));
 function createFileUrlRegExp(ext, flags) {
     return new RegExp('(https?://)?[\\w:\\.\\-\\/]+?\\.' + ext, flags);
@@ -7357,16 +7359,21 @@ function parseUrl(url, path) {
     }
     return new URL(path, url).href;
 }
+var mimeType = {
+    mp4: 'video/mp4',
+    ts: 'video/mp2t'
+};
 var Hls2Mp4 = /** @class */ (function () {
     function Hls2Mp4(_a, onProgress) {
-        var _b = _a.maxRetry, maxRetry = _b === void 0 ? 3 : _b, _c = _a.tsDownloadConcurrency, tsDownloadConcurrency = _c === void 0 ? 10 : _c;
+        var _b = _a.maxRetry, maxRetry = _b === void 0 ? 3 : _b, _c = _a.tsDownloadConcurrency, tsDownloadConcurrency = _c === void 0 ? 10 : _c, _d = _a.outputType, outputType = _d === void 0 ? 'mp4' : _d;
         this.loadRetryTime = 0;
         this.totalSegments = 0;
         this.duration = 0;
         this.savedSegments = new Map();
         this.maxRetry = maxRetry;
-        this.onProgress = onProgress;
         this.tsDownloadConcurrency = tsDownloadConcurrency;
+        this.outputType = outputType;
+        this.onProgress = onProgress;
     }
     Hls2Mp4.prototype.transformBuffer = function (buffer) {
         if (buffer[0] === 0x47) {
@@ -7660,14 +7667,42 @@ var Hls2Mp4 = /** @class */ (function () {
         }
         return dataArray;
     };
-    Hls2Mp4.prototype.transmuxerSegments = function () {
-        var _a, _b;
+    Hls2Mp4.prototype.loopSegments = function (transformer) {
         return __awaiter(this, void 0, void 0, function () {
-            var transmuxer, transmuxerFirstSegment, transmuxerSegment, chunks, i, segment, chunk, data;
-            return __generator(this, function (_c) {
-                switch (_c.label) {
+            var chunks, i, chunk;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
                     case 0:
-                        (_a = this.onProgress) === null || _a === void 0 ? void 0 : _a.call(this, TaskType.mergeTs, 0);
+                        chunks = [];
+                        i = 0;
+                        _a.label = 1;
+                    case 1:
+                        if (!(i < this.savedSegments.size)) return [3 /*break*/, 5];
+                        chunk = this.savedSegments.get(i);
+                        if (!chunk) return [3 /*break*/, 4];
+                        if (!transformer) return [3 /*break*/, 3];
+                        return [4 /*yield*/, transformer(chunk, i)];
+                    case 2:
+                        chunk = _a.sent();
+                        _a.label = 3;
+                    case 3:
+                        chunks.push(chunk);
+                        _a.label = 4;
+                    case 4:
+                        i++;
+                        return [3 /*break*/, 1];
+                    case 5: return [2 /*return*/, chunks];
+                }
+            });
+        });
+    };
+    Hls2Mp4.prototype.transmuxerSegments = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            var transmuxer, transmuxerFirstSegment, transmuxerSegment, chunks;
+            var _this = this;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
                         transmuxer = new Transmuxer({
                             duration: this.duration
                         });
@@ -7691,61 +7726,60 @@ var Hls2Mp4 = /** @class */ (function () {
                                 transmuxer.flush();
                             });
                         };
-                        chunks = [];
-                        i = 0;
-                        _c.label = 1;
+                        return [4 /*yield*/, this.loopSegments(function (chunk, index) { return __awaiter(_this, void 0, void 0, function () {
+                                return __generator(this, function (_a) {
+                                    if (index === 0) {
+                                        return [2 /*return*/, transmuxerFirstSegment(chunk)];
+                                    }
+                                    else {
+                                        return [2 /*return*/, transmuxerSegment(chunk)];
+                                    }
+                                });
+                            }); })];
                     case 1:
-                        if (!(i < this.savedSegments.size)) return [3 /*break*/, 7];
-                        segment = this.savedSegments.get(i);
-                        chunk = void 0;
-                        if (!(i === 0)) return [3 /*break*/, 3];
-                        return [4 /*yield*/, transmuxerFirstSegment(segment)];
+                        chunks = _a.sent();
+                        return [2 /*return*/, this.mergeDataArray(chunks)];
+                }
+            });
+        });
+    };
+    Hls2Mp4.prototype.download = function (url) {
+        var _a, _b;
+        return __awaiter(this, void 0, void 0, function () {
+            var data, chunks;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0: return [4 /*yield*/, this.downloadM3u8(url)];
+                    case 1:
+                        _c.sent();
+                        (_a = this.onProgress) === null || _a === void 0 ? void 0 : _a.call(this, TaskType.mergeTs, 0);
+                        if (!(this.outputType === 'mp4')) return [3 /*break*/, 3];
+                        return [4 /*yield*/, this.transmuxerSegments()];
                     case 2:
-                        chunk = _c.sent();
+                        data = _c.sent();
                         return [3 /*break*/, 5];
-                    case 3: return [4 /*yield*/, transmuxerSegment(segment)];
+                    case 3: return [4 /*yield*/, this.loopSegments()];
                     case 4:
-                        chunk = _c.sent();
+                        chunks = _c.sent();
+                        data = this.mergeDataArray(chunks);
                         _c.label = 5;
                     case 5:
-                        chunks.push(chunk);
-                        _c.label = 6;
-                    case 6:
-                        i++;
-                        return [3 /*break*/, 1];
-                    case 7:
-                        data = this.mergeDataArray(chunks);
                         (_b = this.onProgress) === null || _b === void 0 ? void 0 : _b.call(this, TaskType.mergeTs, 1);
                         return [2 /*return*/, data];
                 }
             });
         });
     };
-    Hls2Mp4.prototype.download = function (url) {
-        return __awaiter(this, void 0, void 0, function () {
-            var data;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0: return [4 /*yield*/, this.downloadM3u8(url)];
-                    case 1:
-                        _a.sent();
-                        return [4 /*yield*/, this.transmuxerSegments()];
-                    case 2:
-                        data = _a.sent();
-                        return [2 /*return*/, data];
-                }
-            });
-        });
-    };
     Hls2Mp4.prototype.saveToFile = function (buffer, filename) {
-        var objectUrl = URL.createObjectURL(new Blob([buffer], { type: 'video/mp4' }));
+        var type = mimeType[this.outputType];
+        var objectUrl = URL.createObjectURL(new Blob([buffer], { type: type }));
         var anchor = document.createElement('a');
         anchor.href = objectUrl;
         anchor.download = filename;
         anchor.click();
         setTimeout(function () { return URL.revokeObjectURL(objectUrl); }, 100);
     };
-    Hls2Mp4.version = '2.0.3';
+    Hls2Mp4.version = '2.0.4';
     Hls2Mp4.TaskType = TaskType;
     return Hls2Mp4;
 }());

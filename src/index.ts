@@ -1,33 +1,38 @@
-import Transmuxer from './muxer/mp4-transmuxer';
-import aesjs, { type ByteSource } from 'aes-js';
+import Transmuxer from './muxer/mp4-transmuxer'
+import aesjs, { type ByteSource } from 'aes-js'
 import { fetchFile } from './util/http'
 
 enum TaskType {
-    loadFFmeg = 0,
-    parseM3u8 = 1,
-    downloadTs = 2,
-    mergeTs = 3
+    parseM3u8 = 0,
+    downloadTs = 1,
+    mergeTs = 2
 }
 
-interface ProgressCallback {
+export interface ProgressCallback {
     (type: TaskType, progress: number): void
+}
+
+export type OutputType = 'mp4' | 'ts'
+
+export type Hls2Mp4Options = {
+    /**
+     * max retry times while request data failed, default: 3
+     */
+    maxRetry?: number;
+    /**
+     * the concurrency for download ts segment, default: 10
+     */
+    tsDownloadConcurrency?: number;
+    /**
+     * the type of output file, can be mp4 or ts, default: mp4
+     */
+    outputType?: OutputType;
 }
 
 type LoadResult<T = unknown> = {
     done: boolean;
     data?: T;
     msg?: string;
-}
-
-type Hls2Mp4Options = {
-    /**
-     * max retry times while request data failed
-     */
-    maxRetry?: number;
-    /**
-     * the concurrency for download ts segment
-     */
-    tsDownloadConcurrency?: number;
 }
 
 type Segment = {
@@ -57,22 +62,29 @@ function parseUrl(url: string, path: string) {
     return new URL(path, url).href;
 }
 
+const mimeType = <Record<OutputType, string>>{
+    mp4: 'video/mp4',
+    ts: 'video/mp2t'
+}
+
 class Hls2Mp4 {
 
     private maxRetry: number;
     private loadRetryTime = 0;
+    private outputType: OutputType;
     private onProgress?: ProgressCallback;
     private tsDownloadConcurrency: number;
     private totalSegments = 0;
     private duration = 0;
     private savedSegments = new Map<number, Uint8Array>()
-    public static version = '2.0.3';
+    public static version = '2.0.4';
     public static TaskType = TaskType;
 
-    constructor({ maxRetry = 3, tsDownloadConcurrency = 10 }: Hls2Mp4Options, onProgress?: ProgressCallback) {
+    constructor({ maxRetry = 3, tsDownloadConcurrency = 10, outputType = 'mp4' }: Hls2Mp4Options, onProgress?: ProgressCallback) {
         this.maxRetry = maxRetry;
-        this.onProgress = onProgress;
         this.tsDownloadConcurrency = tsDownloadConcurrency;
+        this.outputType = outputType;
+        this.onProgress = onProgress;
     }
 
     private transformBuffer(buffer: Uint8Array) {
@@ -297,9 +309,27 @@ class Hls2Mp4 {
         return dataArray
     }
 
-    private async transmuxerSegments() {
+    private async loopSegments(
+        transformer?: (data: Uint8Array, index: number) => Uint8Array | PromiseLike<Uint8Array>
+    ) {
 
-        this.onProgress?.(TaskType.mergeTs, 0);
+        const chunks: Uint8Array[] = []
+
+        for (let i = 0; i < this.savedSegments.size; i++) {
+
+            let chunk = this.savedSegments.get(i)
+
+            if (chunk) {
+                if (transformer) {
+                    chunk = await transformer(chunk, i)
+                }
+                chunks.push(chunk);
+            }
+        }
+        return chunks
+    }
+
+    private async transmuxerSegments() {
 
         const transmuxer = new Transmuxer({
             duration: this.duration
@@ -331,37 +361,38 @@ class Hls2Mp4 {
             )
         }
 
-        let chunks: Uint8Array[] = []
-
-        for (let i = 0; i < this.savedSegments.size; i++) {
-
-            const segment = this.savedSegments.get(i)
-            let chunk: Uint8Array;
-
-            if (i === 0) {
-                chunk = await transmuxerFirstSegment(segment!)
+        const chunks = await this.loopSegments(
+            async (chunk, index) => {
+                if (index === 0) {
+                    return transmuxerFirstSegment(chunk)
+                }
+                else {
+                    return transmuxerSegment(chunk)
+                }
             }
-            else {
-                chunk = await transmuxerSegment(segment!)
-            }
-            chunks.push(chunk);
-        }
+        )
 
-        const data = this.mergeDataArray(chunks)
-
-        this.onProgress?.(TaskType.mergeTs, 1);
-
-        return data;
+        return this.mergeDataArray(chunks)
     }
 
     public async download(url: string) {
         await this.downloadM3u8(url);
-        const data = await this.transmuxerSegments()
+        this.onProgress?.(TaskType.mergeTs, 0);
+        let data: Uint8Array;
+        if (this.outputType === 'mp4') {
+            data = await this.transmuxerSegments()
+        }
+        else {
+            const chunks = await this.loopSegments()
+            data = this.mergeDataArray(chunks)
+        }
+        this.onProgress?.(TaskType.mergeTs, 1);
         return data;
     }
 
     public saveToFile(buffer: ArrayBufferLike, filename: string) {
-        const objectUrl = URL.createObjectURL(new Blob([buffer], { type: 'video/mp4' }));
+        const type = mimeType[this.outputType];
+        const objectUrl = URL.createObjectURL(new Blob([buffer], { type }));
         const anchor = document.createElement('a');
         anchor.href = objectUrl;
         anchor.download = filename;

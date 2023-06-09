@@ -854,9 +854,12 @@
     moof: moof,
     moov: moov,
     initSegment: function initSegment(tracks) {
-      var duration = tracks.reduce(function (p, n) {
-        return p + n.duration;
-      }, 0);
+      var duration = 0;
+      for (var i = 0; i < tracks.length; i++) {
+        if (tracks[i].type === 'video') {
+          duration = tracks[i].duration;
+        }
+      }
       var fileType = ftyp(),
         movie = moov(tracks, duration),
         result;
@@ -6279,11 +6282,11 @@
           while (i--) {
             if (!videoTrack && data.tracks[i].type === 'video') {
               videoTrack = data.tracks[i];
-              videoTrack.duration = pipeline.duration / 2;
+              videoTrack.duration = pipeline.duration;
               videoTrack.timelineStartInfo.baseMediaDecodeTime = self.baseMediaDecodeTime;
             } else if (!audioTrack && data.tracks[i].type === 'audio') {
               audioTrack = data.tracks[i];
-              audioTrack.duration = pipeline.duration / 2;
+              audioTrack.duration = pipeline.duration;
               audioTrack.timelineStartInfo.baseMediaDecodeTime = self.baseMediaDecodeTime;
             }
           }

@@ -30,6 +30,11 @@ const hls2mp4 = new Hls2Mp4({
    * the concurrency for download ts segment, default: 10
   */
   tsDownloadConcurrency?: number;
+  /**
+   * the type of output file, can be mp4 or ts, default: mp4
+   */
+  outputType?: OutputType;
+  
 }, (type, progress) => {
   // type = 0  => load FFmpeg
   // type = 1  => parse m3u8
