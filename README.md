@@ -36,10 +36,9 @@ const hls2mp4 = new Hls2Mp4({
   outputType?: 'mp4' | 'ts';
   
 }, (type, progress) => {
-  // type = 0  => load FFmpeg
-  // type = 1  => parse m3u8
-  // type = 2  => downloading ts
-  // type = 3  => merge ts
+  // type = 0  => parse m3u8
+  // type = 1  => downloading ts
+  // type = 2  => merge ts
 });
 
 const buffer = await hls2mp4.download('your m3u8 url')
