@@ -7509,15 +7509,16 @@ var Hls2Mp4 = (function () {
             return duration;
         };
         Hls2Mp4.prototype.downloadM3u8 = function (url) {
+            var _a, _b, _c;
             return __awaiter(this, void 0, void 0, function () {
-                var m3u8Parsed, _a, content, parsedUrl, keyMatchRegExp, keyTagMatchRegExp, matchReg, matches, segments, i, matched, matchedKey, matchedIV, batch, treatedSegments, segments_1, segments_1_1, group, total, keyBuffer, keyUrl, _loop_1, this_1, i, e_1_1;
-                var e_1, _b;
-                return __generator(this, function (_c) {
-                    switch (_c.label) {
+                var m3u8Parsed, _d, content, parsedUrl, keyMatchRegExp, keyTagMatchRegExp, matchReg, matches, segments, i, matched, matchedKey, matchedIV, batch, treatedSegments, segments_1, segments_1_1, group, total, keyBuffer, keyUrl, _loop_1, this_1, i, e_1_1;
+                var e_1, _e;
+                return __generator(this, function (_f) {
+                    switch (_f.label) {
                         case 0: return [4 /*yield*/, this.parseM3u8(url)];
                         case 1:
-                            m3u8Parsed = _c.sent();
-                            _a = m3u8Parsed, content = _a.content, parsedUrl = _a.url;
+                            m3u8Parsed = _f.sent();
+                            _d = m3u8Parsed, content = _d.content, parsedUrl = _d.url;
                             keyMatchRegExp = createFileUrlRegExp('key', 'gi');
                             keyTagMatchRegExp = new RegExp('#EXT-X-KEY:METHOD=(AES-128|NONE)(,URI="' + keyMatchRegExp.source + '"(,IV=\\w+)?)?', 'gi');
                             matchReg = new RegExp(keyTagMatchRegExp.source + '|' + createFileUrlRegExp('ts', 'gi').source, 'g');
@@ -7530,11 +7531,11 @@ var Hls2Mp4 = (function () {
                             for (i = 0; i < matches.length; i++) {
                                 matched = matches[i];
                                 if (matched.match(/#EXT-X-KEY/)) {
-                                    matchedKey = matched.match(keyMatchRegExp);
-                                    matchedIV = matched.match(/(?<=IV=)\w+$/);
+                                    matchedKey = (_a = matched.match(keyMatchRegExp)) === null || _a === void 0 ? void 0 : _a[0];
+                                    matchedIV = (_c = (_b = matched.match(/IV=\w+$/)) === null || _b === void 0 ? void 0 : _b[0]) === null || _c === void 0 ? void 0 : _c.replace(/^IV=/, '');
                                     segments.push({
-                                        key: matchedKey === null || matchedKey === void 0 ? void 0 : matchedKey[0],
-                                        iv: matchedIV === null || matchedIV === void 0 ? void 0 : matchedIV[0],
+                                        key: matchedKey,
+                                        iv: matchedIV,
                                         segments: []
                                     });
                                 }
@@ -7550,11 +7551,11 @@ var Hls2Mp4 = (function () {
                             this.totalSegments = segments.reduce(function (prev, current) { return prev + current.segments.length; }, 0);
                             batch = this.tsDownloadConcurrency;
                             treatedSegments = 0;
-                            _c.label = 2;
+                            _f.label = 2;
                         case 2:
-                            _c.trys.push([2, 12, 13, 14]);
+                            _f.trys.push([2, 12, 13, 14]);
                             segments_1 = __values(segments), segments_1_1 = segments_1.next();
-                            _c.label = 3;
+                            _f.label = 3;
                         case 3:
                             if (!!segments_1_1.done) return [3 /*break*/, 11];
                             group = segments_1_1.value;
@@ -7564,12 +7565,12 @@ var Hls2Mp4 = (function () {
                             keyUrl = parseUrl(parsedUrl, group.key);
                             return [4 /*yield*/, this.downloadFile(keyUrl)];
                         case 4:
-                            keyBuffer = _c.sent();
-                            _c.label = 5;
+                            keyBuffer = _f.sent();
+                            _f.label = 5;
                         case 5:
                             _loop_1 = function (i) {
-                                return __generator(this, function (_d) {
-                                    switch (_d.label) {
+                                return __generator(this, function (_g) {
+                                    switch (_g.label) {
                                         case 0: return [4 /*yield*/, this_1.downloadSegments(group.segments.slice(i * batch, Math.min(total, (i + 1) * batch)).map(function (seg, j) {
                                                 var url = parseUrl(parsedUrl, seg);
                                                 return {
@@ -7578,37 +7579,37 @@ var Hls2Mp4 = (function () {
                                                 };
                                             }), keyBuffer, group.iv)];
                                         case 1:
-                                            _d.sent();
+                                            _g.sent();
                                             return [2 /*return*/];
                                     }
                                 });
                             };
                             this_1 = this;
                             i = 0;
-                            _c.label = 6;
+                            _f.label = 6;
                         case 6:
                             if (!(i <= Math.floor((total / batch)))) return [3 /*break*/, 9];
                             return [5 /*yield**/, _loop_1(i)];
                         case 7:
-                            _c.sent();
-                            _c.label = 8;
+                            _f.sent();
+                            _f.label = 8;
                         case 8:
                             i++;
                             return [3 /*break*/, 6];
                         case 9:
                             treatedSegments += total;
-                            _c.label = 10;
+                            _f.label = 10;
                         case 10:
                             segments_1_1 = segments_1.next();
                             return [3 /*break*/, 3];
                         case 11: return [3 /*break*/, 14];
                         case 12:
-                            e_1_1 = _c.sent();
+                            e_1_1 = _f.sent();
                             e_1 = { error: e_1_1 };
                             return [3 /*break*/, 14];
                         case 13:
                             try {
-                                if (segments_1_1 && !segments_1_1.done && (_b = segments_1.return)) _b.call(segments_1);
+                                if (segments_1_1 && !segments_1_1.done && (_e = segments_1.return)) _e.call(segments_1);
                             }
                             finally { if (e_1) throw e_1.error; }
                             return [7 /*endfinally*/];
@@ -7780,7 +7781,7 @@ var Hls2Mp4 = (function () {
             anchor.click();
             setTimeout(function () { return URL.revokeObjectURL(objectUrl); }, 100);
         };
-        Hls2Mp4.version = '2.0.4';
+        Hls2Mp4.version = '2.0.5';
         Hls2Mp4.TaskType = TaskType;
         return Hls2Mp4;
     }());
