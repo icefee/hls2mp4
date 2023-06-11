@@ -1039,15 +1039,16 @@ var Hls2Mp4 = /** @class */ (function () {
         });
     };
     Hls2Mp4.prototype.downloadM3u8 = function (url) {
+        var _a, _b, _c;
         return __awaiter(this, void 0, void 0, function () {
-            var m3u8Parsed, _a, content, parsedUrl, keyMatchRegExp, keyTagMatchRegExp, matchReg, matches, segments, i, matched, matchedKey, matchedIV, batch, treatedSegments, segments_1, segments_1_1, group, total, keyBuffer, keyUrl, _loop_1, this_1, i, e_1_1, m3u8;
-            var e_1, _b;
-            return __generator(this, function (_c) {
-                switch (_c.label) {
+            var m3u8Parsed, _d, content, parsedUrl, keyMatchRegExp, keyTagMatchRegExp, matchReg, matches, segments, i, matched, matchedKey, matchedIV, batch, treatedSegments, segments_1, segments_1_1, group, total, keyBuffer, keyUrl, _loop_1, this_1, i, e_1_1, m3u8;
+            var e_1, _e;
+            return __generator(this, function (_f) {
+                switch (_f.label) {
                     case 0: return [4 /*yield*/, this.parseM3u8(url)];
                     case 1:
-                        m3u8Parsed = _c.sent();
-                        _a = m3u8Parsed, content = _a.content, parsedUrl = _a.url;
+                        m3u8Parsed = _f.sent();
+                        _d = m3u8Parsed, content = _d.content, parsedUrl = _d.url;
                         keyMatchRegExp = createFileUrlRegExp('key', 'gi');
                         keyTagMatchRegExp = new RegExp('#EXT-X-KEY:METHOD=(AES-128|NONE)(,URI="' + keyMatchRegExp.source + '"(,IV=\\w+)?)?', 'gi');
                         matchReg = new RegExp(keyTagMatchRegExp.source + '|' + createFileUrlRegExp('ts', 'gi').source, 'g');
@@ -1056,37 +1057,35 @@ var Hls2Mp4 = /** @class */ (function () {
                             throw new Error('Invalid m3u8 file, no ts file found');
                         }
                         segments = [];
-                        if (matches) {
-                            for (i = 0; i < matches.length; i++) {
-                                matched = matches[i];
-                                if (matched.match(/#EXT-X-KEY/)) {
-                                    matchedKey = matched.match(keyMatchRegExp);
-                                    matchedIV = matched.match(/(?<=IV=)\w+$/);
-                                    segments.push({
-                                        key: matchedKey === null || matchedKey === void 0 ? void 0 : matchedKey[0],
-                                        iv: matchedIV === null || matchedIV === void 0 ? void 0 : matchedIV[0],
-                                        segments: []
-                                    });
-                                }
-                                else if (i === 0) {
-                                    segments.push({
-                                        segments: [matched]
-                                    });
-                                }
-                                else {
-                                    segments[segments.length - 1].segments.push(matched);
-                                }
+                        for (i = 0; i < matches.length; i++) {
+                            matched = matches[i];
+                            if (matched.match(/#EXT-X-KEY/)) {
+                                matchedKey = (_a = matched.match(keyMatchRegExp)) === null || _a === void 0 ? void 0 : _a[0];
+                                matchedIV = (_c = (_b = matched.match(/IV=\w+$/)) === null || _b === void 0 ? void 0 : _b[0]) === null || _c === void 0 ? void 0 : _c.replace(/^IV=/, '');
+                                segments.push({
+                                    key: matchedKey,
+                                    iv: matchedIV,
+                                    segments: []
+                                });
+                            }
+                            else if (i === 0) {
+                                segments.push({
+                                    segments: [matched]
+                                });
+                            }
+                            else {
+                                segments[segments.length - 1].segments.push(matched);
                             }
                         }
                         this.totalSegments = segments.reduce(function (prev, current) { return prev + current.segments.length; }, 0);
                         this.savedSegments = 0;
                         batch = this.tsDownloadConcurrency;
                         treatedSegments = 0;
-                        _c.label = 2;
+                        _f.label = 2;
                     case 2:
-                        _c.trys.push([2, 12, 13, 14]);
+                        _f.trys.push([2, 12, 13, 14]);
                         segments_1 = __values(segments), segments_1_1 = segments_1.next();
-                        _c.label = 3;
+                        _f.label = 3;
                     case 3:
                         if (!!segments_1_1.done) return [3 /*break*/, 11];
                         group = segments_1_1.value;
@@ -1096,14 +1095,14 @@ var Hls2Mp4 = /** @class */ (function () {
                         keyUrl = parseUrl(parsedUrl, group.key);
                         return [4 /*yield*/, this.downloadFile(keyUrl)];
                     case 4:
-                        keyBuffer = _c.sent();
-                        _c.label = 5;
+                        keyBuffer = _f.sent();
+                        _f.label = 5;
                     case 5:
                         _loop_1 = function (i) {
-                            var downloadSegs, downloadSegs_1, downloadSegs_1_1, _d, source, name_1;
-                            var e_2, _e;
-                            return __generator(this, function (_f) {
-                                switch (_f.label) {
+                            var downloadSegs, downloadSegs_1, downloadSegs_1_1, _g, source, name_1;
+                            var e_2, _h;
+                            return __generator(this, function (_j) {
+                                switch (_j.label) {
                                     case 0: return [4 /*yield*/, this_1.downloadSegments(group.segments.slice(i * batch, Math.min(total, (i + 1) * batch)).map(function (seg, j) {
                                             var url = parseUrl(parsedUrl, seg);
                                             var name = "seg-".concat(treatedSegments + i * batch + j, ".ts");
@@ -1114,17 +1113,17 @@ var Hls2Mp4 = /** @class */ (function () {
                                             };
                                         }), keyBuffer, group.iv)];
                                     case 1:
-                                        downloadSegs = _f.sent();
+                                        downloadSegs = _j.sent();
                                         try {
                                             for (downloadSegs_1 = (e_2 = void 0, __values(downloadSegs)), downloadSegs_1_1 = downloadSegs_1.next(); !downloadSegs_1_1.done; downloadSegs_1_1 = downloadSegs_1.next()) {
-                                                _d = downloadSegs_1_1.value, source = _d.source, name_1 = _d.name;
+                                                _g = downloadSegs_1_1.value, source = _g.source, name_1 = _g.name;
                                                 content = content.replace(source, name_1);
                                             }
                                         }
                                         catch (e_2_1) { e_2 = { error: e_2_1 }; }
                                         finally {
                                             try {
-                                                if (downloadSegs_1_1 && !downloadSegs_1_1.done && (_e = downloadSegs_1.return)) _e.call(downloadSegs_1);
+                                                if (downloadSegs_1_1 && !downloadSegs_1_1.done && (_h = downloadSegs_1.return)) _h.call(downloadSegs_1);
                                             }
                                             finally { if (e_2) throw e_2.error; }
                                         }
@@ -1134,30 +1133,30 @@ var Hls2Mp4 = /** @class */ (function () {
                         };
                         this_1 = this;
                         i = 0;
-                        _c.label = 6;
+                        _f.label = 6;
                     case 6:
                         if (!(i <= Math.floor((total / batch)))) return [3 /*break*/, 9];
                         return [5 /*yield**/, _loop_1(i)];
                     case 7:
-                        _c.sent();
-                        _c.label = 8;
+                        _f.sent();
+                        _f.label = 8;
                     case 8:
                         i++;
                         return [3 /*break*/, 6];
                     case 9:
                         treatedSegments += total;
-                        _c.label = 10;
+                        _f.label = 10;
                     case 10:
                         segments_1_1 = segments_1.next();
                         return [3 /*break*/, 3];
                     case 11: return [3 /*break*/, 14];
                     case 12:
-                        e_1_1 = _c.sent();
+                        e_1_1 = _f.sent();
                         e_1 = { error: e_1_1 };
                         return [3 /*break*/, 14];
                     case 13:
                         try {
-                            if (segments_1_1 && !segments_1_1.done && (_b = segments_1.return)) _b.call(segments_1);
+                            if (segments_1_1 && !segments_1_1.done && (_e = segments_1.return)) _e.call(segments_1);
                         }
                         finally { if (e_1) throw e_1.error; }
                         return [7 /*endfinally*/];
@@ -1255,7 +1254,7 @@ var Hls2Mp4 = /** @class */ (function () {
         anchor.click();
         setTimeout(function () { return URL.revokeObjectURL(objectUrl); }, 100);
     };
-    Hls2Mp4.version = '1.1.8';
+    Hls2Mp4.version = '1.1.9';
     Hls2Mp4.TaskType = TaskType;
     return Hls2Mp4;
 }());

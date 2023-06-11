@@ -30,7 +30,7 @@
     "typescript": "^4.7.4"
   },
   "type": "module",
-  "homepage": "hls2mp4",
+  "homepage": "https://github.com/icefee/hls2mp4",
   "browserslist": {
     "production": [
       ">0.2%",
