@@ -77,7 +77,7 @@ class Hls2Mp4 {
     private totalSegments = 0;
     private duration = 0;
     private savedSegments = new Map<number, Uint8Array>()
-    public static version = '2.0.4';
+    public static version = '2.0.5';
     public static TaskType = TaskType;
 
     constructor({ maxRetry = 3, tsDownloadConcurrency = 10, outputType = 'mp4' }: Hls2Mp4Options, onProgress?: ProgressCallback) {
@@ -217,11 +217,11 @@ class Hls2Mp4 {
         for (let i = 0; i < matches.length; i++) {
             const matched = matches[i]
             if (matched.match(/#EXT-X-KEY/)) {
-                const matchedKey = matched.match(keyMatchRegExp)
-                const matchedIV = matched.match(/(?<=IV=)\w+$/)
+                const matchedKey = matched.match(keyMatchRegExp)?.[0]
+                const matchedIV = matched.match(/IV=\w+$/)?.[0]?.replace(/^IV=/, '')
                 segments.push({
-                    key: matchedKey?.[0],
-                    iv: matchedIV?.[0],
+                    key: matchedKey,
+                    iv: matchedIV,
                     segments: []
                 })
             }
