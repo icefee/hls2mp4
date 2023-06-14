@@ -1,6 +1,8 @@
 ### A tool for download hls/m3u8 to mp4
 
-#### no longer depend on @ffmpeg/ffmpeg since version 2.0
+##### no longer depend on @ffmpeg/ffmpeg since version 2.0
+
+##### for better compatibility for mp4 file, use 1.x instead
 
 ### online demo
 
@@ -52,3 +54,7 @@ hls2mp4.saveToFile(buffer, 'test.mp4')
   const hls2mp4 = new Hls2Mp4({...})
 </script>
 ```
+
+### limitations
+
+- m3u8 file with multiple audio track not supported for now
