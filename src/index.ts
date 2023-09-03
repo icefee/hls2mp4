@@ -1,7 +1,6 @@
-import FFmpeg, { type CreateFFmpegOptions, type FFmpeg as FFmpegInstance } from '@ffmpeg/ffmpeg';
-import aesjs, { type ByteSource } from 'aes-js';
-
-const { createFFmpeg, fetchFile } = FFmpeg;
+import { FFmpeg } from '@ffmpeg/ffmpeg'
+import { fetchFile, toBlobURL } from '@ffmpeg/util'
+import aesjs, { type ByteSource } from 'aes-js'
 
 enum TaskType {
     loadFFmeg = 0,
@@ -61,18 +60,18 @@ function parseUrl(url: string, path: string) {
 
 class Hls2Mp4 {
 
-    private instance: FFmpegInstance;
+    private ffmpeg: FFmpeg;
     private maxRetry: number;
     private loadRetryTime = 0;
     private onProgress?: ProgressCallback;
     private tsDownloadConcurrency: number;
     private totalSegments = 0;
     private savedSegments = 0;
-    public static version = '1.1.9';
+    public static version = '1.2.0';
     public static TaskType = TaskType;
 
-    constructor({ maxRetry = 3, tsDownloadConcurrency = 10, ...options }: CreateFFmpegOptions & Hls2Mp4Options, onProgress?: ProgressCallback) {
-        this.instance = createFFmpeg(options);
+    constructor({ maxRetry = 3, tsDownloadConcurrency = 10 }: Hls2Mp4Options, onProgress?: ProgressCallback) {
+        this.ffmpeg = new FFmpeg();
         this.maxRetry = maxRetry;
         this.onProgress = onProgress;
         this.tsDownloadConcurrency = tsDownloadConcurrency;
@@ -165,7 +164,7 @@ class Hls2Mp4 {
             segs.map(async ({ name, url, source }) => {
                 const tsData = await this.downloadFile(url)
                 const buffer = key ? this.aesDecrypt(tsData!, key, iv) : this.transformBuffer(tsData!)
-                this.instance.FS('writeFile', name, buffer)
+                this.ffmpeg.writeFile(name, buffer)
                 this.savedSegments += 1
                 this.onProgress?.(TaskType.downloadTs, this.savedSegments / this.totalSegments)
                 return {
@@ -257,7 +256,7 @@ class Hls2Mp4 {
         }
         content = content.replace(keyTagMatchRegExp, '')
         const m3u8 = 'temp.m3u8'
-        this.instance.FS('writeFile', m3u8, content)
+        this.ffmpeg.writeFile(m3u8, content)
         return m3u8
     }
 
@@ -282,16 +281,21 @@ class Hls2Mp4 {
         }
     }
 
-    private async loadFFmpeg() {
+    private async loadFFmpeg(): Promise<void> {
         this.onProgress?.(TaskType.loadFFmeg, 0)
-        const { done } = await this.loopLoadFile(
-            () => this.instance.load()
-        )
-        if (done) {
-            this.onProgress?.(TaskType.loadFFmeg, done ? 1 : -1);
+        const baseUrl = 'https://unpkg.com/@ffmpeg/core@0.12.2/dist/umd'
+        const coreURL = await toBlobURL(`${baseUrl}/ffmpeg-core.js`, 'text/javascript')
+        const wasmURL = await toBlobURL(`${baseUrl}/ffmpeg-core.wasm`, 'application/wasm')
+        // workerURL = workerURL ?? await toBlobURL(`${baseUrl}/ffmpeg-core.worker.js`, 'text/javascript')
+        const loaded = await this.ffmpeg.load({
+            coreURL,
+            wasmURL
+        })
+        if (loaded) {
+            this.onProgress?.(TaskType.loadFFmeg, 1)
         }
         else {
-            throw new Error('FFmpeg load failed')
+            return this.loadFFmpeg()
         }
     }
 
@@ -299,14 +303,14 @@ class Hls2Mp4 {
         await this.loadFFmpeg();
         const m3u8 = await this.downloadM3u8(url);
         this.onProgress?.(TaskType.mergeTs, 0);
-        await this.instance.run('-i', m3u8, '-c', 'copy', 'temp.mp4', '-loglevel', 'debug');
-        const data = this.instance.FS('readFile', 'temp.mp4');
-        this.instance.exit();
+        await this.ffmpeg.exec(['-i', m3u8, '-c', 'copy', 'temp.mp4', '-loglevel', 'debug']);
+        const data = await this.ffmpeg.readFile('temp.mp4');
+        this.ffmpeg.terminate();
         this.onProgress?.(TaskType.mergeTs, 1);
-        return data.buffer;
+        return data;
     }
 
-    public saveToFile(buffer: ArrayBufferLike, filename: string) {
+    public saveToFile(buffer: ArrayBuffer | string, filename: string) {
         const objectUrl = URL.createObjectURL(new Blob([buffer], { type: 'video/mp4' }));
         const anchor = document.createElement('a');
         anchor.href = objectUrl;

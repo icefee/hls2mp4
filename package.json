@@ -1,6 +1,6 @@
 {
   "name": "hls2mp4",
-  "version": "1.1.9",
+  "version": "1.2.0",
   "description": "a tool for download hls/m3u8 to mp4",
   "main": "index.js",
   "types": "index.d.ts",
@@ -19,10 +19,10 @@
     "aes-js": "^3.1.2"
   },
   "devDependencies": {
-    "@ffmpeg/core": "^0.11.0",
-    "@ffmpeg/ffmpeg": "^0.11.6",
-    "@rollup/plugin-node-resolve": "^15.0.2",
+    "@ffmpeg/ffmpeg": "^0.12.6",
+    "@ffmpeg/util": "^0.12.1",
     "@rollup/plugin-commonjs": "^25.0.0",
+    "@rollup/plugin-node-resolve": "^15.0.2",
     "@rollup/plugin-typescript": "^11.1.0",
     "@types/aes-js": "^3.1.1",
     "rollup": "^3.21.4",

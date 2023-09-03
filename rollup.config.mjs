@@ -40,7 +40,7 @@ export default {
         nodeResolve()
     ],
     external: [
-        '@ffmpeg/core',
-        '@ffmpeg/ffmpeg'
+        '@ffmpeg/ffmpeg',
+        '@ffmpeg/util'
     ]
 }

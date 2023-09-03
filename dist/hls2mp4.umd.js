@@ -1,8 +1,8 @@
 (function (global, factory) {
-    typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory(require('@ffmpeg/ffmpeg')) :
-    typeof define === 'function' && define.amd ? define(['@ffmpeg/ffmpeg'], factory) :
-    (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Hls2Mp4 = factory(global.FFmpeg));
-})(this, (function (FFmpeg) { 'use strict';
+    typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory(require('@ffmpeg/ffmpeg'), require('@ffmpeg/util')) :
+    typeof define === 'function' && define.amd ? define(['@ffmpeg/ffmpeg', '@ffmpeg/util'], factory) :
+    (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Hls2Mp4 = factory(global.FFmpeg, global.util));
+})(this, (function (ffmpeg, util) { 'use strict';
 
     /******************************************************************************
     Copyright (c) Microsoft Corporation.
@@ -20,18 +20,6 @@
     ***************************************************************************** */
     /* global Reflect, Promise */
 
-
-    function __rest(s, e) {
-        var t = {};
-        for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
-            t[p] = s[p];
-        if (s != null && typeof Object.getOwnPropertySymbols === "function")
-            for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
-                if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
-                    t[p[i]] = s[p[i]];
-            }
-        return t;
-    }
 
     function __awaiter(thisArg, _arguments, P, generator) {
         function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -886,7 +874,6 @@
     var aesJsExports = aesJs.exports;
     var aesjs = /*@__PURE__*/getDefaultExportFromCjs(aesJsExports);
 
-    var createFFmpeg = FFmpeg.createFFmpeg, fetchFile = FFmpeg.fetchFile;
     var TaskType;
     (function (TaskType) {
         TaskType[TaskType["loadFFmeg"] = 0] = "loadFFmeg";
@@ -905,11 +892,11 @@
     }
     var Hls2Mp4 = /** @class */ (function () {
         function Hls2Mp4(_a, onProgress) {
-            var _b = _a.maxRetry, maxRetry = _b === void 0 ? 3 : _b, _c = _a.tsDownloadConcurrency, tsDownloadConcurrency = _c === void 0 ? 10 : _c, options = __rest(_a, ["maxRetry", "tsDownloadConcurrency"]);
+            var _b = _a.maxRetry, maxRetry = _b === void 0 ? 3 : _b, _c = _a.tsDownloadConcurrency, tsDownloadConcurrency = _c === void 0 ? 10 : _c;
             this.loadRetryTime = 0;
             this.totalSegments = 0;
             this.savedSegments = 0;
-            this.instance = createFFmpeg(options);
+            this.ffmpeg = new ffmpeg.FFmpeg();
             this.maxRetry = maxRetry;
             this.onProgress = onProgress;
             this.tsDownloadConcurrency = tsDownloadConcurrency;
@@ -954,7 +941,7 @@
                         case 1:
                             playList = _a.sent();
                             return [3 /*break*/, 4];
-                        case 2: return [4 /*yield*/, fetchFile(url).then(function (data) { return aesjs.utils.utf8.fromBytes(data); })];
+                        case 2: return [4 /*yield*/, util.fetchFile(url).then(function (data) { return aesjs.utils.utf8.fromBytes(data); })];
                         case 3:
                             playList = _a.sent();
                             _a.label = 4;
@@ -998,7 +985,7 @@
                 var _b, done, data, fileName;
                 return __generator(this, function (_c) {
                     switch (_c.label) {
-                        case 0: return [4 /*yield*/, this.loopLoadFile(function () { return fetchFile(url); })];
+                        case 0: return [4 /*yield*/, this.loopLoadFile(function () { return util.fetchFile(url); })];
                         case 1:
                             _b = _c.sent(), done = _b.done, data = _b.data;
                             if (done) {
@@ -1025,7 +1012,7 @@
                                         case 1:
                                             tsData = _c.sent();
                                             buffer = key ? this.aesDecrypt(tsData, key, iv) : this.transformBuffer(tsData);
-                                            this.instance.FS('writeFile', name, buffer);
+                                            this.ffmpeg.writeFile(name, buffer);
                                             this.savedSegments += 1;
                                             (_b = this.onProgress) === null || _b === void 0 ? void 0 : _b.call(this, TaskType.downloadTs, this.savedSegments / this.totalSegments);
                                             return [2 /*return*/, {
@@ -1165,7 +1152,7 @@
                         case 14:
                             content = content.replace(keyTagMatchRegExp, '');
                             m3u8 = 'temp.m3u8';
-                            this.instance.FS('writeFile', m3u8, content);
+                            this.ffmpeg.writeFile(m3u8, content);
                             return [2 /*return*/, m3u8];
                     }
                 });
@@ -1204,20 +1191,31 @@
         Hls2Mp4.prototype.loadFFmpeg = function () {
             var _a, _b;
             return __awaiter(this, void 0, void 0, function () {
-                var done;
-                var _this = this;
+                var baseUrl, coreURL, wasmURL, loaded;
                 return __generator(this, function (_c) {
                     switch (_c.label) {
                         case 0:
                             (_a = this.onProgress) === null || _a === void 0 ? void 0 : _a.call(this, TaskType.loadFFmeg, 0);
-                            return [4 /*yield*/, this.loopLoadFile(function () { return _this.instance.load(); })];
+                            baseUrl = 'https://unpkg.com/@ffmpeg/core@0.12.2/dist/umd';
+                            return [4 /*yield*/, util.toBlobURL("".concat(baseUrl, "/ffmpeg-core.js"), 'text/javascript')];
                         case 1:
-                            done = (_c.sent()).done;
-                            if (done) {
-                                (_b = this.onProgress) === null || _b === void 0 ? void 0 : _b.call(this, TaskType.loadFFmeg, done ? 1 : -1);
+                            coreURL = _c.sent();
+                            return [4 /*yield*/, util.toBlobURL("".concat(baseUrl, "/ffmpeg-core.wasm"), 'application/wasm')
+                                // workerURL = workerURL ?? await toBlobURL(`${baseUrl}/ffmpeg-core.worker.js`, 'text/javascript')
+                            ];
+                        case 2:
+                            wasmURL = _c.sent();
+                            return [4 /*yield*/, this.ffmpeg.load({
+                                    coreURL: coreURL,
+                                    wasmURL: wasmURL
+                                })];
+                        case 3:
+                            loaded = _c.sent();
+                            if (loaded) {
+                                (_b = this.onProgress) === null || _b === void 0 ? void 0 : _b.call(this, TaskType.loadFFmeg, 1);
                             }
                             else {
-                                throw new Error('FFmpeg load failed');
+                                return [2 /*return*/, this.loadFFmpeg()];
                             }
                             return [2 /*return*/];
                     }
@@ -1237,13 +1235,15 @@
                         case 2:
                             m3u8 = _c.sent();
                             (_a = this.onProgress) === null || _a === void 0 ? void 0 : _a.call(this, TaskType.mergeTs, 0);
-                            return [4 /*yield*/, this.instance.run('-i', m3u8, '-c', 'copy', 'temp.mp4', '-loglevel', 'debug')];
+                            return [4 /*yield*/, this.ffmpeg.exec(['-i', m3u8, '-c', 'copy', 'temp.mp4', '-loglevel', 'debug'])];
                         case 3:
                             _c.sent();
-                            data = this.instance.FS('readFile', 'temp.mp4');
-                            this.instance.exit();
+                            return [4 /*yield*/, this.ffmpeg.readFile('temp.mp4')];
+                        case 4:
+                            data = _c.sent();
+                            this.ffmpeg.terminate();
                             (_b = this.onProgress) === null || _b === void 0 ? void 0 : _b.call(this, TaskType.mergeTs, 1);
-                            return [2 /*return*/, data.buffer];
+                            return [2 /*return*/, data];
                     }
                 });
             });
@@ -1256,7 +1256,7 @@
             anchor.click();
             setTimeout(function () { return URL.revokeObjectURL(objectUrl); }, 100);
         };
-        Hls2Mp4.version = '1.1.9';
+        Hls2Mp4.version = '1.2.0';
         Hls2Mp4.TaskType = TaskType;
         return Hls2Mp4;
     }());
