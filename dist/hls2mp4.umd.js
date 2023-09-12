@@ -891,7 +891,7 @@
         return new URL(path, url).href;
     }
     var Hls2Mp4 = /** @class */ (function () {
-        function Hls2Mp4(_a, onProgress) {
+        function Hls2Mp4(_a, onProgress, onError) {
             var _b = _a.maxRetry, maxRetry = _b === void 0 ? 3 : _b, _c = _a.tsDownloadConcurrency, tsDownloadConcurrency = _c === void 0 ? 10 : _c;
             this.loadRetryTime = 0;
             this.totalSegments = 0;
@@ -1247,27 +1247,35 @@
             });
         };
         Hls2Mp4.prototype.download = function (url) {
-            var _a, _b;
+            var _a, _b, _c;
             return __awaiter(this, void 0, void 0, function () {
-                var m3u8, data;
-                return __generator(this, function (_c) {
-                    switch (_c.label) {
-                        case 0: return [4 /*yield*/, this.loadFFmpeg()];
+                var m3u8, data, err_2;
+                return __generator(this, function (_d) {
+                    switch (_d.label) {
+                        case 0:
+                            _d.trys.push([0, 5, , 6]);
+                            return [4 /*yield*/, this.loadFFmpeg()];
                         case 1:
-                            _c.sent();
+                            _d.sent();
                             return [4 /*yield*/, this.downloadM3u8(url)];
                         case 2:
-                            m3u8 = _c.sent();
+                            m3u8 = _d.sent();
                             (_a = this.onProgress) === null || _a === void 0 ? void 0 : _a.call(this, exports.TaskType.mergeTs, 0);
                             return [4 /*yield*/, this.ffmpeg.exec(['-i', m3u8, '-c', 'copy', 'temp.mp4', '-loglevel', 'debug'])];
                         case 3:
-                            _c.sent();
+                            _d.sent();
                             return [4 /*yield*/, this.ffmpeg.readFile('temp.mp4')];
                         case 4:
-                            data = _c.sent();
+                            data = _d.sent();
                             this.ffmpeg.terminate();
                             (_b = this.onProgress) === null || _b === void 0 ? void 0 : _b.call(this, exports.TaskType.mergeTs, 1);
                             return [2 /*return*/, data];
+                        case 5:
+                            err_2 = _d.sent();
+                            this.ffmpeg.terminate();
+                            (_c = this.onError) === null || _c === void 0 ? void 0 : _c.call(this, err_2);
+                            return [3 /*break*/, 6];
+                        case 6: return [2 /*return*/];
                     }
                 });
             });
@@ -1280,7 +1288,7 @@
             anchor.click();
             setTimeout(function () { return URL.revokeObjectURL(objectUrl); }, 100);
         };
-        Hls2Mp4.version = '1.2.2';
+        Hls2Mp4.version = '1.2.3';
         Hls2Mp4.TaskType = exports.TaskType;
         return Hls2Mp4;
     }());

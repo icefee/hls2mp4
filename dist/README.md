@@ -45,6 +45,8 @@ const hls2mp4 = new Hls2Mp4({
   // type = 1  => parse m3u8
   // type = 2  => downloading ts
   // type = 3  => merge ts
+}, (error) => {
+  // has error
 });
 
 const buffer = await hls2mp4.download('your m3u8 url')

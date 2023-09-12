@@ -7,6 +7,9 @@ export declare enum TaskType {
 interface ProgressCallback {
     (type: TaskType, progress: number): void;
 }
+interface ErrorCallback {
+    (error: any): void;
+}
 type Hls2Mp4Options = {
     /**
      * max retry times while request data failed
@@ -26,12 +29,13 @@ declare class Hls2Mp4 {
     private maxRetry;
     private loadRetryTime;
     private onProgress?;
+    private onError?;
     private tsDownloadConcurrency;
     private totalSegments;
     private savedSegments;
     static version: string;
     static TaskType: typeof TaskType;
-    constructor({ maxRetry, tsDownloadConcurrency }: Hls2Mp4Options, onProgress?: ProgressCallback);
+    constructor({ maxRetry, tsDownloadConcurrency }: Hls2Mp4Options, onProgress?: ProgressCallback, onError?: ErrorCallback);
     private transformBuffer;
     private hexToUint8Array;
     private aesDecrypt;
@@ -42,7 +46,7 @@ declare class Hls2Mp4 {
     private downloadM3u8;
     private loopLoadFile;
     private loadFFmpeg;
-    download(url: string): Promise<import("@ffmpeg/ffmpeg/dist/esm/types").FileData>;
+    download(url: string): Promise<import("@ffmpeg/ffmpeg/dist/esm/types").FileData | undefined>;
     saveToFile(buffer: ArrayBuffer | string, filename: string): void;
 }
 export default Hls2Mp4;

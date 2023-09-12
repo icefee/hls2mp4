@@ -13,6 +13,10 @@ interface ProgressCallback {
     (type: TaskType, progress: number): void
 }
 
+interface ErrorCallback {
+    (error: any): void
+}
+
 type LoadResult<T = unknown> = {
     done: boolean;
     data?: T;
@@ -64,13 +68,14 @@ class Hls2Mp4 {
     private maxRetry: number;
     private loadRetryTime = 0;
     private onProgress?: ProgressCallback;
+    private onError?: ErrorCallback;
     private tsDownloadConcurrency: number;
     private totalSegments = 0;
     private savedSegments = 0;
-    public static version = '1.2.2';
+    public static version = '1.2.3';
     public static TaskType = TaskType;
 
-    constructor({ maxRetry = 3, tsDownloadConcurrency = 10 }: Hls2Mp4Options, onProgress?: ProgressCallback) {
+    constructor({ maxRetry = 3, tsDownloadConcurrency = 10 }: Hls2Mp4Options, onProgress?: ProgressCallback, onError?: ErrorCallback) {
         this.ffmpeg = new FFmpeg();
         this.maxRetry = maxRetry;
         this.onProgress = onProgress;
@@ -326,14 +331,20 @@ class Hls2Mp4 {
     }
 
     public async download(url: string) {
-        await this.loadFFmpeg();
-        const m3u8 = await this.downloadM3u8(url);
-        this.onProgress?.(TaskType.mergeTs, 0);
-        await this.ffmpeg.exec(['-i', m3u8, '-c', 'copy', 'temp.mp4', '-loglevel', 'debug']);
-        const data = await this.ffmpeg.readFile('temp.mp4');
-        this.ffmpeg.terminate();
-        this.onProgress?.(TaskType.mergeTs, 1);
-        return data;
+        try {
+            await this.loadFFmpeg();
+            const m3u8 = await this.downloadM3u8(url);
+            this.onProgress?.(TaskType.mergeTs, 0);
+            await this.ffmpeg.exec(['-i', m3u8, '-c', 'copy', 'temp.mp4', '-loglevel', 'debug']);
+            const data = await this.ffmpeg.readFile('temp.mp4');
+            this.ffmpeg.terminate();
+            this.onProgress?.(TaskType.mergeTs, 1);
+            return data;
+        }
+        catch (err) {
+            this.ffmpeg.terminate();
+            this.onError?.(err);
+        }
     }
 
     public saveToFile(buffer: ArrayBuffer | string, filename: string) {
