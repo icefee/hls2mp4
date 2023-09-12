@@ -2,7 +2,7 @@ import { FFmpeg } from '@ffmpeg/ffmpeg'
 import { fetchFile, toBlobURL } from '@ffmpeg/util'
 import aesjs, { type ByteSource } from 'aes-js'
 
-enum TaskType {
+export enum TaskType {
     loadFFmeg = 0,
     parseM3u8 = 1,
     downloadTs = 2,
@@ -67,7 +67,7 @@ class Hls2Mp4 {
     private tsDownloadConcurrency: number;
     private totalSegments = 0;
     private savedSegments = 0;
-    public static version = '1.2.1';
+    public static version = '1.2.2';
     public static TaskType = TaskType;
 
     constructor({ maxRetry = 3, tsDownloadConcurrency = 10 }: Hls2Mp4Options, onProgress?: ProgressCallback) {
@@ -123,12 +123,38 @@ class Hls2Mp4 {
                 data => aesjs.utils.utf8.fromBytes(data)
             )
         }
-        const matchedM3u8 = playList.match(
-            createFileUrlRegExp('m3u8', 'i')
-        )
-        if (matchedM3u8) {
-            const parsedUrl = parseUrl(url, matchedM3u8[0])
-            return this.parseM3u8File(parsedUrl, customFetch)
+        const streamInfoMatcher = /#EXT-X-STREAM-INF/i
+        const streamInfos = playList.match(streamInfoMatcher)
+        if (streamInfos) {
+            const lines = playList.split(/\n/)
+            const bandwidthMatcher = /BANDWIDTH=\d+/i
+            let bandwidth = 0, maxBandwidthUrl: string | null = null
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                if (line.match(streamInfoMatcher)) {
+                    const currentBandwidth = Number(
+                        line.match(bandwidthMatcher)?.[0]?.match(/\d+/)?.[0]
+                    )
+                    if (currentBandwidth > bandwidth) {
+                        maxBandwidthUrl = lines[i + 1]
+                        bandwidth = currentBandwidth
+                    }
+                }
+            }
+            if (maxBandwidthUrl) {
+                return this.parseM3u8File(
+                    parseUrl(url, maxBandwidthUrl),
+                    customFetch
+                )
+            }
+        }
+        else {
+            const matcher = createFileUrlRegExp('m3u8', 'i')
+            const matched = playList.match(matcher)
+            if (matched) {
+                const parsedUrl = parseUrl(url, matched[0])
+                return this.parseM3u8File(parsedUrl, customFetch)
+            }
         }
         return {
             url,

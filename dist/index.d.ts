@@ -1,4 +1,4 @@
-declare enum TaskType {
+export declare enum TaskType {
     loadFFmeg = 0,
     parseM3u8 = 1,
     downloadTs = 2,
