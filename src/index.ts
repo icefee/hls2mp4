@@ -67,7 +67,7 @@ class Hls2Mp4 {
     private tsDownloadConcurrency: number;
     private totalSegments = 0;
     private savedSegments = 0;
-    public static version = '1.2.0';
+    public static version = '1.2.1';
     public static TaskType = TaskType;
 
     constructor({ maxRetry = 3, tsDownloadConcurrency = 10 }: Hls2Mp4Options, onProgress?: ProgressCallback) {

@@ -1256,7 +1256,7 @@
             anchor.click();
             setTimeout(function () { return URL.revokeObjectURL(objectUrl); }, 100);
         };
-        Hls2Mp4.version = '1.2.0';
+        Hls2Mp4.version = '1.2.1';
         Hls2Mp4.TaskType = TaskType;
         return Hls2Mp4;
     }());

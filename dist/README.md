@@ -4,7 +4,7 @@
 
 ```shell
 # install ffmpeg
-npm install @ffmpeg/ffmpeg @ffmpeg/core
+npm install @ffmpeg/ffmpeg @ffmpeg/util
 
 ```
 
