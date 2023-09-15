@@ -395,7 +395,7 @@ class Hls2Mp4 {
         const objectUrl = URL.createObjectURL(new Blob([buffer], { type }));
         const anchor = document.createElement('a');
         anchor.href = objectUrl;
-        anchor.download = filename;
+        anchor.download = `${filename}.${this.outputType}`;
         anchor.click();
         setTimeout(() => URL.revokeObjectURL(objectUrl), 100);
     }
