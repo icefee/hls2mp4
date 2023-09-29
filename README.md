@@ -1,6 +1,6 @@
-### A tool for download hls/m3u8 to mp4
+## A tool for download hls/m3u8 to mp4
 
-#### This package depends on @ffmpeg/ffmpeg, you need install it first
+- This package depends on @ffmpeg/ffmpeg, you need install it first
 
 ```shell
 # install ffmpeg
@@ -8,7 +8,7 @@ npm install @ffmpeg/ffmpeg @ffmpeg/util
 
 ```
 
-##### for more information, see [https://github.com/ffmpegwasm/ffmpeg.wasm](https://github.com/ffmpegwasm/ffmpeg.wasm)
+- for more information, see [https://github.com/ffmpegwasm/ffmpeg.wasm](https://github.com/ffmpegwasm/ffmpeg.wasm)
 
 ### online demo
 

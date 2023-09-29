@@ -46,7 +46,7 @@ declare class Hls2Mp4 {
     private downloadM3u8;
     private loopLoadFile;
     private loadFFmpeg;
-    download(url: string): Promise<import("@ffmpeg/ffmpeg/dist/esm/types").FileData | undefined>;
+    download(url: string): Promise<import("@ffmpeg/ffmpeg/dist/esm/types").FileData | null>;
     saveToFile(buffer: ArrayBuffer | string, filename: string): void;
 }
 export default Hls2Mp4;

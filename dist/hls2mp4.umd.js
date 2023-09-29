@@ -1274,7 +1274,7 @@
                             err_2 = _d.sent();
                             this.ffmpeg.terminate();
                             (_c = this.onError) === null || _c === void 0 ? void 0 : _c.call(this, err_2);
-                            return [3 /*break*/, 6];
+                            return [2 /*return*/, null];
                         case 6: return [2 /*return*/];
                     }
                 });

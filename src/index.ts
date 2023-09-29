@@ -344,6 +344,7 @@ class Hls2Mp4 {
         catch (err) {
             this.ffmpeg.terminate();
             this.onError?.(err);
+            return null;
         }
     }
 
