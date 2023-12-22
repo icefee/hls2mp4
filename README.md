@@ -39,7 +39,11 @@ const hls2mp4 = new Hls2Mp4({
    * @type {number}
    * the concurrency for download ts
    */
-  tsDownloadConcurrency = 10
+  tsDownloadConcurrency = 10,
+  /**
+   * the base url of ffmpeg
+   */
+  ffmpegBaseUrl = 'https://unpkg.com/@ffmpeg/core@0.12.2/dist/umd'
 }, (type, progress) => {
   // type = 0  => load FFmpeg
   // type = 1  => parse m3u8

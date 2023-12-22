@@ -19,6 +19,10 @@ type Hls2Mp4Options = {
      * the concurrency for download ts
      */
     tsDownloadConcurrency?: number;
+    /**
+     * the base url of ffmpeg default: https://unpkg.com/@ffmpeg/core@0.12.2/dist/umd
+     */
+    ffmpegBaseUrl?: string;
 };
 export interface M3u8Parsed {
     url: string;
@@ -27,6 +31,7 @@ export interface M3u8Parsed {
 declare class Hls2Mp4 {
     private ffmpeg;
     private maxRetry;
+    private ffmpegBaseUrl;
     private loadRetryTime;
     private onProgress?;
     private onError?;
@@ -35,7 +40,7 @@ declare class Hls2Mp4 {
     private savedSegments;
     static version: string;
     static TaskType: typeof TaskType;
-    constructor({ maxRetry, tsDownloadConcurrency }: Hls2Mp4Options, onProgress?: ProgressCallback, onError?: ErrorCallback);
+    constructor({ maxRetry, tsDownloadConcurrency, ffmpegBaseUrl }: Hls2Mp4Options, onProgress?: ProgressCallback, onError?: ErrorCallback);
     private transformBuffer;
     private hexToUint8Array;
     private aesDecrypt;

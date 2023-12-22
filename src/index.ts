@@ -32,6 +32,10 @@ type Hls2Mp4Options = {
      * the concurrency for download ts
      */
     tsDownloadConcurrency?: number;
+    /**
+     * the base url of ffmpeg default: https://unpkg.com/@ffmpeg/core@0.12.2/dist/umd
+     */
+    ffmpegBaseUrl?: string;
 }
 
 type Segment = {
@@ -62,24 +66,37 @@ function parseUrl(url: string, path: string) {
     return new URL(path, url).href;
 }
 
+const ffmpegDefaultBaseUrl = 'https://unpkg.com/@ffmpeg/core@0.12.2/dist/umd'
+
 class Hls2Mp4 {
 
     private ffmpeg: FFmpeg;
     private maxRetry: number;
+    private ffmpegBaseUrl!: string;
     private loadRetryTime = 0;
     private onProgress?: ProgressCallback;
     private onError?: ErrorCallback;
     private tsDownloadConcurrency: number;
     private totalSegments = 0;
     private savedSegments = 0;
-    public static version = '1.2.3';
+    public static version = '1.2.5';
     public static TaskType = TaskType;
 
-    constructor({ maxRetry = 3, tsDownloadConcurrency = 10 }: Hls2Mp4Options, onProgress?: ProgressCallback, onError?: ErrorCallback) {
+    constructor(
+        {
+            maxRetry = 3,
+            tsDownloadConcurrency = 10,
+            ffmpegBaseUrl = ffmpegDefaultBaseUrl
+        }: Hls2Mp4Options,
+        onProgress?: ProgressCallback,
+        onError?: ErrorCallback
+    ) {
         this.ffmpeg = new FFmpeg();
         this.maxRetry = maxRetry;
-        this.onProgress = onProgress;
         this.tsDownloadConcurrency = tsDownloadConcurrency;
+        this.ffmpegBaseUrl = ffmpegBaseUrl;
+        this.onProgress = onProgress;
+        this.onError = onError;
     }
 
     private transformBuffer(buffer: Uint8Array) {
@@ -88,7 +105,6 @@ class Hls2Mp4 {
         }
         let bufferOffset = 0;
         for (let i = 0; i < buffer.length; i++) {
-
             if (buffer[i] === 0x47 && buffer[i + 1] === 0x40) {
                 bufferOffset = i;
                 break;
@@ -253,14 +269,11 @@ class Hls2Mp4 {
         for (const group of segments) {
             const total = group.segments.length;
             let keyBuffer: Uint8Array | undefined;
-
             if (group.key) {
                 const keyUrl = parseUrl(parsedUrl, group.key)
                 keyBuffer = await this.downloadFile(keyUrl)
             }
-
             for (let i = 0; i <= Math.floor((total / batch)); i++) {
-
                 const downloadSegs = await this.downloadSegments(
                     group.segments.slice(
                         i * batch,
@@ -314,7 +327,7 @@ class Hls2Mp4 {
 
     private async loadFFmpeg(): Promise<void> {
         this.onProgress?.(TaskType.loadFFmeg, 0)
-        const baseUrl = 'https://unpkg.com/@ffmpeg/core@0.12.2/dist/umd'
+        const baseUrl = this.ffmpegBaseUrl
         const coreURL = await toBlobURL(`${baseUrl}/ffmpeg-core.js`, 'text/javascript')
         const wasmURL = await toBlobURL(`${baseUrl}/ffmpeg-core.wasm`, 'application/wasm')
         // workerURL = workerURL ?? await toBlobURL(`${baseUrl}/ffmpeg-core.worker.js`, 'text/javascript')

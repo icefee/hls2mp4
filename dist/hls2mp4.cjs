@@ -891,16 +891,19 @@ function parseUrl(url, path) {
     }
     return new URL(path, url).href;
 }
+var ffmpegDefaultBaseUrl = 'https://unpkg.com/@ffmpeg/core@0.12.2/dist/umd';
 var Hls2Mp4 = /** @class */ (function () {
     function Hls2Mp4(_a, onProgress, onError) {
-        var _b = _a.maxRetry, maxRetry = _b === void 0 ? 3 : _b, _c = _a.tsDownloadConcurrency, tsDownloadConcurrency = _c === void 0 ? 10 : _c;
+        var _b = _a.maxRetry, maxRetry = _b === void 0 ? 3 : _b, _c = _a.tsDownloadConcurrency, tsDownloadConcurrency = _c === void 0 ? 10 : _c, _d = _a.ffmpegBaseUrl, ffmpegBaseUrl = _d === void 0 ? ffmpegDefaultBaseUrl : _d;
         this.loadRetryTime = 0;
         this.totalSegments = 0;
         this.savedSegments = 0;
         this.ffmpeg = new ffmpeg.FFmpeg();
         this.maxRetry = maxRetry;
-        this.onProgress = onProgress;
         this.tsDownloadConcurrency = tsDownloadConcurrency;
+        this.ffmpegBaseUrl = ffmpegBaseUrl;
+        this.onProgress = onProgress;
+        this.onError = onError;
     }
     Hls2Mp4.prototype.transformBuffer = function (buffer) {
         if (buffer[0] === 0x47) {
@@ -1221,7 +1224,7 @@ var Hls2Mp4 = /** @class */ (function () {
                 switch (_c.label) {
                     case 0:
                         (_a = this.onProgress) === null || _a === void 0 ? void 0 : _a.call(this, exports.TaskType.loadFFmeg, 0);
-                        baseUrl = 'https://unpkg.com/@ffmpeg/core@0.12.2/dist/umd';
+                        baseUrl = this.ffmpegBaseUrl;
                         return [4 /*yield*/, util.toBlobURL("".concat(baseUrl, "/ffmpeg-core.js"), 'text/javascript')];
                     case 1:
                         coreURL = _c.sent();
@@ -1289,7 +1292,7 @@ var Hls2Mp4 = /** @class */ (function () {
         anchor.click();
         setTimeout(function () { return URL.revokeObjectURL(objectUrl); }, 100);
     };
-    Hls2Mp4.version = '1.2.3';
+    Hls2Mp4.version = '1.2.5';
     Hls2Mp4.TaskType = exports.TaskType;
     return Hls2Mp4;
 }());
