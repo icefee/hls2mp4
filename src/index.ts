@@ -226,14 +226,13 @@ class Hls2Mp4 {
     private async downloadM3u8(url: string) {
         const m3u8Parsed = await this.parseM3u8(url)
         let { content, url: parsedUrl } = m3u8Parsed!;
-        const keyMatchRegExp = createFileUrlRegExp('key', 'gi');
         const keyTagMatchRegExp = new RegExp(
-            '#EXT-X-KEY:METHOD=(AES-128|NONE)(,URI="' + keyMatchRegExp.source + '"(,IV=\\w+)?)?',
+            '#EXT-X-KEY:METHOD=(AES-128|NONE)(,URI="[^"]+"(,IV=\\w+)?)?',
             'gi'
         )
         const matchReg = new RegExp(
-            keyTagMatchRegExp.source + '|' + createFileUrlRegExp('ts', 'gi').source,
-            'g'
+            keyTagMatchRegExp.source + '|(?<=#EXTINF:\\d+(\\.\\d+)?,\\n).+',
+            'gim'
         )
         const matches = content.match(matchReg)
         if (!matches) {
@@ -243,7 +242,7 @@ class Hls2Mp4 {
         for (let i = 0; i < matches.length; i++) {
             const matched = matches[i]
             if (matched.match(/#EXT-X-KEY/)) {
-                const matchedKey = matched.match(keyMatchRegExp)?.[0]
+                const matchedKey = matched.match(/(?<=URI=").+(?=")/)?.[0]
                 const matchedIV = matched.match(/IV=\w+$/)?.[0]?.replace(/^IV=/, '')
                 segments.push({
                     key: matchedKey,
@@ -261,10 +260,13 @@ class Hls2Mp4 {
             }
         }
 
-        this.totalSegments = segments.reduce((prev, current) => prev + current.segments.length, 0);
-        this.savedSegments = 0;
-        const batch = this.tsDownloadConcurrency;
-        let treatedSegments = 0;
+        this.totalSegments = segments.reduce(
+            (prev, current) => prev + current.segments.length,
+            0
+        )
+        this.savedSegments = 0
+        const batch = this.tsDownloadConcurrency
+        let treatedSegments = 0
 
         for (const group of segments) {
             const total = group.segments.length;
@@ -345,30 +347,32 @@ class Hls2Mp4 {
 
     public async download(url: string) {
         try {
-            await this.loadFFmpeg();
-            const m3u8 = await this.downloadM3u8(url);
-            this.onProgress?.(TaskType.mergeTs, 0);
-            await this.ffmpeg.exec(['-i', m3u8, '-c', 'copy', 'temp.mp4', '-loglevel', 'debug']);
-            const data = await this.ffmpeg.readFile('temp.mp4');
-            this.ffmpeg.terminate();
-            this.onProgress?.(TaskType.mergeTs, 1);
-            return data;
+            await this.loadFFmpeg()
+            const m3u8 = await this.downloadM3u8(url)
+            this.onProgress?.(TaskType.mergeTs, 0)
+            await this.ffmpeg.exec(['-i', m3u8, '-c', 'copy', 'temp.mp4', '-loglevel', 'debug'])
+            const data = await this.ffmpeg.readFile('temp.mp4')
+            this.ffmpeg.terminate()
+            this.onProgress?.(TaskType.mergeTs, 1)
+            return data
         }
         catch (err) {
-            this.ffmpeg.terminate();
-            this.onError?.(err);
-            return null;
+            this.ffmpeg.terminate()
+            this.onError?.(err)
+            return null
         }
     }
 
     public saveToFile(buffer: ArrayBuffer | string, filename: string) {
-        const objectUrl = URL.createObjectURL(new Blob([buffer], { type: 'video/mp4' }));
-        const anchor = document.createElement('a');
-        anchor.href = objectUrl;
-        anchor.download = filename;
-        anchor.click();
-        setTimeout(() => URL.revokeObjectURL(objectUrl), 100);
+        const objectUrl = URL.createObjectURL(
+            new Blob([buffer], { type: 'video/mp4' })
+        )
+        const anchor = document.createElement('a')
+        anchor.href = objectUrl
+        anchor.download = filename
+        anchor.click()
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 100)
     }
 }
 
-export default Hls2Mp4;
+export default Hls2Mp4

@@ -1057,7 +1057,7 @@
         Hls2Mp4.prototype.downloadM3u8 = function (url) {
             var _a, _b, _c;
             return __awaiter(this, void 0, void 0, function () {
-                var m3u8Parsed, _d, content, parsedUrl, keyMatchRegExp, keyTagMatchRegExp, matchReg, matches, segments, i, matched, matchedKey, matchedIV, batch, treatedSegments, segments_1, segments_1_1, group, total, keyBuffer, keyUrl, _loop_1, this_1, i, e_1_1, m3u8;
+                var m3u8Parsed, _d, content, parsedUrl, keyTagMatchRegExp, matchReg, matches, segments, i, matched, matchedKey, matchedIV, batch, treatedSegments, segments_1, segments_1_1, group, total, keyBuffer, keyUrl, _loop_1, this_1, i, e_1_1, m3u8;
                 var e_1, _e;
                 return __generator(this, function (_f) {
                     switch (_f.label) {
@@ -1065,9 +1065,8 @@
                         case 1:
                             m3u8Parsed = _f.sent();
                             _d = m3u8Parsed, content = _d.content, parsedUrl = _d.url;
-                            keyMatchRegExp = createFileUrlRegExp('key', 'gi');
-                            keyTagMatchRegExp = new RegExp('#EXT-X-KEY:METHOD=(AES-128|NONE)(,URI="' + keyMatchRegExp.source + '"(,IV=\\w+)?)?', 'gi');
-                            matchReg = new RegExp(keyTagMatchRegExp.source + '|' + createFileUrlRegExp('ts', 'gi').source, 'g');
+                            keyTagMatchRegExp = new RegExp('#EXT-X-KEY:METHOD=(AES-128|NONE)(,URI="[^"]+"(,IV=\\w+)?)?', 'gi');
+                            matchReg = new RegExp(keyTagMatchRegExp.source + '|(?<=#EXTINF:\\d+(\\.\\d+)?,\\n).+', 'gim');
                             matches = content.match(matchReg);
                             if (!matches) {
                                 throw new Error('Invalid m3u8 file, no ts file found');
@@ -1076,7 +1075,7 @@
                             for (i = 0; i < matches.length; i++) {
                                 matched = matches[i];
                                 if (matched.match(/#EXT-X-KEY/)) {
-                                    matchedKey = (_a = matched.match(keyMatchRegExp)) === null || _a === void 0 ? void 0 : _a[0];
+                                    matchedKey = (_a = matched.match(/(?<=URI=").+(?=")/)) === null || _a === void 0 ? void 0 : _a[0];
                                     matchedIV = (_c = (_b = matched.match(/IV=\w+$/)) === null || _b === void 0 ? void 0 : _b[0]) === null || _c === void 0 ? void 0 : _c.replace(/^IV=/, '');
                                     segments.push({
                                         key: matchedKey,
