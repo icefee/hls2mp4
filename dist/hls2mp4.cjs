@@ -1058,7 +1058,7 @@ var Hls2Mp4 = /** @class */ (function () {
     Hls2Mp4.prototype.downloadM3u8 = function (url) {
         var _a, _b, _c;
         return __awaiter(this, void 0, void 0, function () {
-            var m3u8Parsed, _d, content, parsedUrl, keyTagMatchRegExp, matchReg, matches, segments, i, matched, matchedKey, matchedIV, batch, treatedSegments, segments_1, segments_1_1, group, total, keyBuffer, keyUrl, _loop_1, this_1, i, e_1_1, m3u8;
+            var m3u8Parsed, _d, content, parsedUrl, keyTagMatchRegExp, extMatchRegExp, matchReg, matches, segments, i, matched, matchedKey, matchedIV, segment, batch, treatedSegments, segments_1, segments_1_1, group, total, keyBuffer, keyUrl, _loop_1, this_1, i, e_1_1, m3u8;
             var e_1, _e;
             return __generator(this, function (_f) {
                 switch (_f.label) {
@@ -1067,7 +1067,8 @@ var Hls2Mp4 = /** @class */ (function () {
                         m3u8Parsed = _f.sent();
                         _d = m3u8Parsed, content = _d.content, parsedUrl = _d.url;
                         keyTagMatchRegExp = new RegExp('#EXT-X-KEY:METHOD=(AES-128|NONE)(,URI="[^"]+"(,IV=\\w+)?)?', 'gi');
-                        matchReg = new RegExp(keyTagMatchRegExp.source + '|(?<=#EXTINF:\\d+(\\.\\d+)?,\\n).+', 'gim');
+                        extMatchRegExp = new RegExp('#EXTINF:\\d+(\\.\\d+)?,\\n');
+                        matchReg = new RegExp(keyTagMatchRegExp.source + '|' + extMatchRegExp.source + '.+', 'gim');
                         matches = content.match(matchReg);
                         if (!matches) {
                             throw new Error('Invalid m3u8 file, no ts file found');
@@ -1084,13 +1085,16 @@ var Hls2Mp4 = /** @class */ (function () {
                                     segments: []
                                 });
                             }
-                            else if (i === 0) {
-                                segments.push({
-                                    segments: [matched]
-                                });
-                            }
                             else {
-                                segments[segments.length - 1].segments.push(matched);
+                                segment = matched.replace(extMatchRegExp, '');
+                                if (i === 0) {
+                                    segments.push({
+                                        segments: [segment]
+                                    });
+                                }
+                                else {
+                                    segments[segments.length - 1].segments.push(segment);
+                                }
                             }
                         }
                         this.totalSegments = segments.reduce(function (prev, current) { return prev + current.segments.length; }, 0);
@@ -1291,7 +1295,7 @@ var Hls2Mp4 = /** @class */ (function () {
         anchor.click();
         setTimeout(function () { return URL.revokeObjectURL(objectUrl); }, 100);
     };
-    Hls2Mp4.version = '1.2.5';
+    Hls2Mp4.version = '1.2.7';
     Hls2Mp4.TaskType = exports.TaskType;
     return Hls2Mp4;
 }());

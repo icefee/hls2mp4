@@ -79,7 +79,7 @@ class Hls2Mp4 {
     private tsDownloadConcurrency: number;
     private totalSegments = 0;
     private savedSegments = 0;
-    public static version = '1.2.5';
+    public static version = '1.2.7';
     public static TaskType = TaskType;
 
     constructor(
@@ -230,8 +230,9 @@ class Hls2Mp4 {
             '#EXT-X-KEY:METHOD=(AES-128|NONE)(,URI="[^"]+"(,IV=\\w+)?)?',
             'gi'
         )
+        const extMatchRegExp = new RegExp('#EXTINF:\\d+(\\.\\d+)?,\\n')
         const matchReg = new RegExp(
-            keyTagMatchRegExp.source + '|(?<=#EXTINF:\\d+(\\.\\d+)?,\\n).+',
+            keyTagMatchRegExp.source + '|' + extMatchRegExp.source + '.+',
             'gim'
         )
         const matches = content.match(matchReg)
@@ -250,13 +251,16 @@ class Hls2Mp4 {
                     segments: []
                 })
             }
-            else if (i === 0) {
-                segments.push({
-                    segments: [matched]
-                })
-            }
             else {
-                segments[segments.length - 1].segments.push(matched)
+                const segment = matched.replace(extMatchRegExp, '')
+                if (i === 0) {
+                    segments.push({
+                        segments: [segment]
+                    })
+                }
+                else {
+                    segments[segments.length - 1].segments.push(segment)
+                }
             }
         }
 
