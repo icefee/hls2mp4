@@ -1,4 +1,4 @@
-var Hls2Mp4 = (function (exports, ffmpeg, util) {
+var Hls2Mp4 = (function (exports, ffmpeg) {
     'use strict';
 
     /******************************************************************************
@@ -878,6 +878,35 @@ var Hls2Mp4 = (function (exports, ffmpeg, util) {
         TaskType[TaskType["downloadTs"] = 2] = "downloadTs";
         TaskType[TaskType["mergeTs"] = 3] = "mergeTs";
     })(exports.TaskType || (exports.TaskType = {}));
+    function fetchFile(url) {
+        return __awaiter(this, void 0, void 0, function () {
+            var response, arrayBuffer;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, fetch(url)];
+                    case 1:
+                        response = _a.sent();
+                        return [4 /*yield*/, response.arrayBuffer()];
+                    case 2:
+                        arrayBuffer = _a.sent();
+                        return [2 /*return*/, new Uint8Array(arrayBuffer)];
+                }
+            });
+        });
+    }
+    function toBlobURL(url, type) {
+        return __awaiter(this, void 0, void 0, function () {
+            var data;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, fetchFile(url)];
+                    case 1:
+                        data = _a.sent();
+                        return [2 /*return*/, URL.createObjectURL(new Blob([data.buffer], { type: type }))];
+                }
+            });
+        });
+    }
     function createFileUrlRegExp(ext, flags) {
         return new RegExp('(https?://)?[\\w:\\.\\-\\/]+?\\.' + ext, flags);
     }
@@ -889,8 +918,18 @@ var Hls2Mp4 = (function (exports, ffmpeg, util) {
     }
     var ffmpegDefaultBaseUrl = 'https://unpkg.com/@ffmpeg/core@0.12.2/dist/umd';
     var Hls2Mp4 = /** @class */ (function () {
-        function Hls2Mp4(_a, onProgress, onError) {
-            var _b = _a.maxRetry, maxRetry = _b === void 0 ? 3 : _b, _c = _a.tsDownloadConcurrency, tsDownloadConcurrency = _c === void 0 ? 10 : _c, _d = _a.ffmpegBaseUrl, ffmpegBaseUrl = _d === void 0 ? ffmpegDefaultBaseUrl : _d;
+        function Hls2Mp4(_a, 
+        /**
+         * @deprecated
+         * will be removed in the feature, please use options.onProgress instead
+         */
+        _onProgress, 
+        /**
+         * @deprecated
+         * will be removed in the feature, please use options.onError instead
+         */
+        _onError) {
+            var _b = _a.maxRetry, maxRetry = _b === void 0 ? 3 : _b, _c = _a.tsDownloadConcurrency, tsDownloadConcurrency = _c === void 0 ? 10 : _c, _d = _a.ffmpegBaseUrl, ffmpegBaseUrl = _d === void 0 ? ffmpegDefaultBaseUrl : _d, onProgress = _a.onProgress, onError = _a.onError;
             this.loadRetryTime = 0;
             this.totalSegments = 0;
             this.savedSegments = 0;
@@ -898,8 +937,8 @@ var Hls2Mp4 = (function (exports, ffmpeg, util) {
             this.maxRetry = maxRetry;
             this.tsDownloadConcurrency = tsDownloadConcurrency;
             this.ffmpegBaseUrl = ffmpegBaseUrl;
-            this.onProgress = onProgress;
-            this.onError = onError;
+            this.onProgress = onProgress !== null && onProgress !== void 0 ? onProgress : _onProgress;
+            this.onError = onError !== null && onError !== void 0 ? onError : _onError;
         }
         Hls2Mp4.prototype.transformBuffer = function (buffer) {
             if (buffer[0] === 0x47) {
@@ -942,7 +981,7 @@ var Hls2Mp4 = (function (exports, ffmpeg, util) {
                         case 1:
                             playList = _d.sent();
                             return [3 /*break*/, 4];
-                        case 2: return [4 /*yield*/, util.fetchFile(url).then(function (data) { return aesjs.utils.utf8.fromBytes(data); })];
+                        case 2: return [4 /*yield*/, fetchFile(url).then(function (data) { return aesjs.utils.utf8.fromBytes(data); })];
                         case 3:
                             playList = _d.sent();
                             _d.label = 4;
@@ -1009,7 +1048,7 @@ var Hls2Mp4 = (function (exports, ffmpeg, util) {
                 var _b, done, data, fileName;
                 return __generator(this, function (_c) {
                     switch (_c.label) {
-                        case 0: return [4 /*yield*/, this.loopLoadFile(function () { return util.fetchFile(url); })];
+                        case 0: return [4 /*yield*/, this.loopLoadFile(function () { return fetchFile(url); })];
                         case 1:
                             _b = _c.sent(), done = _b.done, data = _b.data;
                             if (done) {
@@ -1224,10 +1263,10 @@ var Hls2Mp4 = (function (exports, ffmpeg, util) {
                         case 0:
                             (_a = this.onProgress) === null || _a === void 0 ? void 0 : _a.call(this, exports.TaskType.loadFFmeg, 0);
                             baseUrl = this.ffmpegBaseUrl;
-                            return [4 /*yield*/, util.toBlobURL("".concat(baseUrl, "/ffmpeg-core.js"), 'text/javascript')];
+                            return [4 /*yield*/, toBlobURL("".concat(baseUrl, "/ffmpeg-core.js"), 'text/javascript')];
                         case 1:
                             coreURL = _c.sent();
-                            return [4 /*yield*/, util.toBlobURL("".concat(baseUrl, "/ffmpeg-core.wasm"), 'application/wasm')
+                            return [4 /*yield*/, toBlobURL("".concat(baseUrl, "/ffmpeg-core.wasm"), 'application/wasm')
                                 // workerURL = workerURL ?? await toBlobURL(`${baseUrl}/ffmpeg-core.worker.js`, 'text/javascript')
                             ];
                         case 2:
@@ -1291,7 +1330,10 @@ var Hls2Mp4 = (function (exports, ffmpeg, util) {
             anchor.click();
             setTimeout(function () { return URL.revokeObjectURL(objectUrl); }, 100);
         };
-        Hls2Mp4.version = '1.2.7';
+        Hls2Mp4.prototype.destroy = function () {
+            this.ffmpeg.terminate();
+        };
+        Hls2Mp4.version = '1.2.8';
         Hls2Mp4.TaskType = exports.TaskType;
         return Hls2Mp4;
     }());
@@ -1302,4 +1344,4 @@ var Hls2Mp4 = (function (exports, ffmpeg, util) {
 
     return exports;
 
-})({}, FFmpeg, util);
+})({}, FFmpeg);

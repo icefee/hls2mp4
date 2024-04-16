@@ -1,5 +1,4 @@
 import { FFmpeg } from '@ffmpeg/ffmpeg';
-import { fetchFile, toBlobURL } from '@ffmpeg/util';
 
 /******************************************************************************
 Copyright (c) Microsoft Corporation.
@@ -878,6 +877,35 @@ var TaskType;
     TaskType[TaskType["downloadTs"] = 2] = "downloadTs";
     TaskType[TaskType["mergeTs"] = 3] = "mergeTs";
 })(TaskType || (TaskType = {}));
+function fetchFile(url) {
+    return __awaiter(this, void 0, void 0, function () {
+        var response, arrayBuffer;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, fetch(url)];
+                case 1:
+                    response = _a.sent();
+                    return [4 /*yield*/, response.arrayBuffer()];
+                case 2:
+                    arrayBuffer = _a.sent();
+                    return [2 /*return*/, new Uint8Array(arrayBuffer)];
+            }
+        });
+    });
+}
+function toBlobURL(url, type) {
+    return __awaiter(this, void 0, void 0, function () {
+        var data;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, fetchFile(url)];
+                case 1:
+                    data = _a.sent();
+                    return [2 /*return*/, URL.createObjectURL(new Blob([data.buffer], { type: type }))];
+            }
+        });
+    });
+}
 function createFileUrlRegExp(ext, flags) {
     return new RegExp('(https?://)?[\\w:\\.\\-\\/]+?\\.' + ext, flags);
 }
@@ -889,8 +917,18 @@ function parseUrl(url, path) {
 }
 var ffmpegDefaultBaseUrl = 'https://unpkg.com/@ffmpeg/core@0.12.2/dist/umd';
 var Hls2Mp4 = /** @class */ (function () {
-    function Hls2Mp4(_a, onProgress, onError) {
-        var _b = _a.maxRetry, maxRetry = _b === void 0 ? 3 : _b, _c = _a.tsDownloadConcurrency, tsDownloadConcurrency = _c === void 0 ? 10 : _c, _d = _a.ffmpegBaseUrl, ffmpegBaseUrl = _d === void 0 ? ffmpegDefaultBaseUrl : _d;
+    function Hls2Mp4(_a, 
+    /**
+     * @deprecated
+     * will be removed in the feature, please use options.onProgress instead
+     */
+    _onProgress, 
+    /**
+     * @deprecated
+     * will be removed in the feature, please use options.onError instead
+     */
+    _onError) {
+        var _b = _a.maxRetry, maxRetry = _b === void 0 ? 3 : _b, _c = _a.tsDownloadConcurrency, tsDownloadConcurrency = _c === void 0 ? 10 : _c, _d = _a.ffmpegBaseUrl, ffmpegBaseUrl = _d === void 0 ? ffmpegDefaultBaseUrl : _d, onProgress = _a.onProgress, onError = _a.onError;
         this.loadRetryTime = 0;
         this.totalSegments = 0;
         this.savedSegments = 0;
@@ -898,8 +936,8 @@ var Hls2Mp4 = /** @class */ (function () {
         this.maxRetry = maxRetry;
         this.tsDownloadConcurrency = tsDownloadConcurrency;
         this.ffmpegBaseUrl = ffmpegBaseUrl;
-        this.onProgress = onProgress;
-        this.onError = onError;
+        this.onProgress = onProgress !== null && onProgress !== void 0 ? onProgress : _onProgress;
+        this.onError = onError !== null && onError !== void 0 ? onError : _onError;
     }
     Hls2Mp4.prototype.transformBuffer = function (buffer) {
         if (buffer[0] === 0x47) {
@@ -1291,7 +1329,10 @@ var Hls2Mp4 = /** @class */ (function () {
         anchor.click();
         setTimeout(function () { return URL.revokeObjectURL(objectUrl); }, 100);
     };
-    Hls2Mp4.version = '1.2.7';
+    Hls2Mp4.prototype.destroy = function () {
+        this.ffmpeg.terminate();
+    };
+    Hls2Mp4.version = '1.2.8';
     Hls2Mp4.TaskType = TaskType;
     return Hls2Mp4;
 }());

@@ -1,5 +1,4 @@
 import { FFmpeg } from '@ffmpeg/ffmpeg'
-import { fetchFile, toBlobURL } from '@ffmpeg/util'
 import aesjs, { type ByteSource } from 'aes-js'
 
 export enum TaskType {
@@ -36,6 +35,14 @@ type Hls2Mp4Options = {
      * the base url of ffmpeg default: https://unpkg.com/@ffmpeg/core@0.12.2/dist/umd
      */
     ffmpegBaseUrl?: string;
+    /**
+     * progress update callback
+     */
+    onProgress?: ProgressCallback;
+    /**
+     * error callback
+     */
+    onError?: ErrorCallback;
 }
 
 type Segment = {
@@ -53,6 +60,19 @@ type SegmentGroup = {
     key?: string;
     iv?: string;
     segments: string[];
+}
+
+async function fetchFile(url: string): Promise<Uint8Array> {
+    const response = await fetch(url)
+    const arrayBuffer = await response.arrayBuffer()
+    return new Uint8Array(arrayBuffer)
+}
+
+async function toBlobURL(url: string, type: string): Promise<string> {
+    const data = await fetchFile(url)
+    return URL.createObjectURL(
+        new Blob([data.buffer], { type })
+    )
 }
 
 function createFileUrlRegExp(ext: string, flags?: string) {
@@ -79,24 +99,34 @@ class Hls2Mp4 {
     private tsDownloadConcurrency: number;
     private totalSegments = 0;
     private savedSegments = 0;
-    public static version = '1.2.7';
+    public static version = '1.2.8';
     public static TaskType = TaskType;
 
     constructor(
         {
             maxRetry = 3,
             tsDownloadConcurrency = 10,
-            ffmpegBaseUrl = ffmpegDefaultBaseUrl
+            ffmpegBaseUrl = ffmpegDefaultBaseUrl,
+            onProgress,
+            onError
         }: Hls2Mp4Options,
-        onProgress?: ProgressCallback,
-        onError?: ErrorCallback
+        /**
+         * @deprecated
+         * will be removed in the feature, please use options.onProgress instead
+         */
+        _onProgress?: ProgressCallback,
+        /**
+         * @deprecated
+         * will be removed in the feature, please use options.onError instead
+         */
+        _onError?: ErrorCallback
     ) {
         this.ffmpeg = new FFmpeg();
         this.maxRetry = maxRetry;
         this.tsDownloadConcurrency = tsDownloadConcurrency;
         this.ffmpegBaseUrl = ffmpegBaseUrl;
-        this.onProgress = onProgress;
-        this.onError = onError;
+        this.onProgress = onProgress ?? _onProgress;
+        this.onError = onError ?? _onError;
     }
 
     private transformBuffer(buffer: Uint8Array) {
@@ -376,6 +406,10 @@ class Hls2Mp4 {
         anchor.download = filename
         anchor.click()
         setTimeout(() => URL.revokeObjectURL(objectUrl), 100)
+    }
+
+    public destroy() {
+        this.ffmpeg.terminate()
     }
 }
 
