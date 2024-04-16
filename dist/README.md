@@ -4,7 +4,7 @@
 
 ```shell
 # install ffmpeg
-npm install @ffmpeg/ffmpeg @ffmpeg/util
+npm install @ffmpeg/ffmpeg
 
 ```
 
@@ -43,18 +43,29 @@ const hls2mp4 = new Hls2Mp4({
   /**
    * the base url of ffmpeg
    */
-  ffmpegBaseUrl = 'https://unpkg.com/@ffmpeg/core@0.12.2/dist/umd'
-}, (type, progress) => {
-  // type = 0  => load FFmpeg
-  // type = 1  => parse m3u8
-  // type = 2  => downloading ts
-  // type = 3  => merge ts
-}, (error) => {
-  // has error
+  ffmpegBaseUrl = 'https://unpkg.com/@ffmpeg/core@0.12.2/dist/umd',
+  /**
+   * progress callback
+  */
+  onProgress?: (type, progress) => {
+    // type = 0  => load FFmpeg
+    // type = 1  => parse m3u8
+    // type = 2  => downloading ts
+    // type = 3  => merge ts
+  };
+  /**
+   * error callback
+  */
+  onError?: (error) => {};
 });
 
 const buffer = await hls2mp4.download('your m3u8 url')
-hls2mp4.saveToFile(buffer, 'test.mp4')
+if (buffer) {
+  hls2mp4.saveToFile(buffer, 'test.mp4')
+}
+else {
+  // download failed
+}
 ```
 
 #### as script

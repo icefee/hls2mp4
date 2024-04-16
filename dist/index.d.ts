@@ -23,6 +23,14 @@ type Hls2Mp4Options = {
      * the base url of ffmpeg default: https://unpkg.com/@ffmpeg/core@0.12.2/dist/umd
      */
     ffmpegBaseUrl?: string;
+    /**
+     * progress update callback
+     */
+    onProgress?: ProgressCallback;
+    /**
+     * error callback
+     */
+    onError?: ErrorCallback;
 };
 export interface M3u8Parsed {
     url: string;
@@ -40,7 +48,17 @@ declare class Hls2Mp4 {
     private savedSegments;
     static version: string;
     static TaskType: typeof TaskType;
-    constructor({ maxRetry, tsDownloadConcurrency, ffmpegBaseUrl }: Hls2Mp4Options, onProgress?: ProgressCallback, onError?: ErrorCallback);
+    constructor({ maxRetry, tsDownloadConcurrency, ffmpegBaseUrl, onProgress, onError }: Hls2Mp4Options, 
+    /**
+     * @deprecated
+     * will be removed in the feature, please use options.onProgress instead
+     */
+    _onProgress?: ProgressCallback, 
+    /**
+     * @deprecated
+     * will be removed in the feature, please use options.onError instead
+     */
+    _onError?: ErrorCallback);
     private transformBuffer;
     private hexToUint8Array;
     private aesDecrypt;
@@ -53,5 +71,6 @@ declare class Hls2Mp4 {
     private loadFFmpeg;
     download(url: string): Promise<import("@ffmpeg/ffmpeg/dist/esm/types").FileData | null>;
     saveToFile(buffer: ArrayBuffer | string, filename: string): void;
+    destroy(): void;
 }
 export default Hls2Mp4;
