@@ -902,7 +902,7 @@ var Hls2Mp4 = (function (exports, ffmpeg) {
                     case 0: return [4 /*yield*/, fetchFile(url)];
                     case 1:
                         data = _a.sent();
-                        return [2 /*return*/, URL.createObjectURL(new Blob([data.buffer], { type: type }))];
+                        return [2 /*return*/, URL.createObjectURL(new Blob([data], { type: type }))];
                 }
             });
         });
@@ -916,7 +916,7 @@ var Hls2Mp4 = (function (exports, ffmpeg) {
         }
         return new URL(path, url).href;
     }
-    var ffmpegDefaultBaseUrl = 'https://unpkg.com/@ffmpeg/core@0.12.2/dist/umd';
+    var ffmpegDefaultBaseUrl = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
     var Hls2Mp4 = /** @class */ (function () {
         function Hls2Mp4(_a, 
         /**
@@ -1333,7 +1333,7 @@ var Hls2Mp4 = (function (exports, ffmpeg) {
         Hls2Mp4.prototype.destroy = function () {
             this.ffmpeg.terminate();
         };
-        Hls2Mp4.version = '1.2.8';
+        Hls2Mp4.version = '1.2.9';
         Hls2Mp4.TaskType = exports.TaskType;
         return Hls2Mp4;
     }());

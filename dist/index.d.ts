@@ -70,7 +70,7 @@ declare class Hls2Mp4 {
     private loopLoadFile;
     private loadFFmpeg;
     download(url: string): Promise<import("@ffmpeg/ffmpeg/dist/esm/types").FileData | null>;
-    saveToFile(buffer: ArrayBuffer | string, filename: string): void;
+    saveToFile(buffer: BlobPart, filename: string): void;
     destroy(): void;
 }
 export default Hls2Mp4;
