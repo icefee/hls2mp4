@@ -86,7 +86,7 @@ function parseUrl(url: string, path: string) {
     return new URL(path, url).href;
 }
 
-const ffmpegDefaultBaseUrl = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm'
+const ffmpegDefaultBaseUrl = 'https://unpkg.com/@ffmpeg/core@0.12.2/dist/umd'
 
 class Hls2Mp4 {
 
@@ -99,7 +99,7 @@ class Hls2Mp4 {
     private tsDownloadConcurrency: number;
     private totalSegments = 0;
     private savedSegments = 0;
-    public static version = '1.2.9';
+    public static version = '1.2.10';
     public static TaskType = TaskType;
 
     constructor(
