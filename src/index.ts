@@ -1,7 +1,7 @@
 import { FFmpeg } from '@ffmpeg/ffmpeg'
 import aesjs, { type ByteSource } from 'aes-js'
 
-export enum TaskType {
+enum TaskType {
     loadFFmeg = 0,
     parseM3u8 = 1,
     downloadTs = 2,
@@ -32,7 +32,7 @@ type Hls2Mp4Options = {
      */
     tsDownloadConcurrency?: number;
     /**
-     * the base url of ffmpeg default: https://unpkg.com/@ffmpeg/core@0.12.2/dist/umd
+     * the base url of ffmpeg default: https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd
      */
     ffmpegBaseUrl?: string;
     /**
@@ -51,7 +51,7 @@ type Segment = {
     name: string;
 }
 
-export interface M3u8Parsed {
+declare interface M3u8Parsed {
     url: string;
     content: string;
 }
@@ -86,7 +86,7 @@ function parseUrl(url: string, path: string) {
     return new URL(path, url).href;
 }
 
-const ffmpegDefaultBaseUrl = 'https://unpkg.com/@ffmpeg/core@0.12.2/dist/umd'
+const ffmpegDefaultBaseUrl = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd'
 
 class Hls2Mp4 {
 
@@ -99,7 +99,7 @@ class Hls2Mp4 {
     private tsDownloadConcurrency: number;
     private totalSegments = 0;
     private savedSegments = 0;
-    public static version = '1.2.10';
+    public static version = '1.2.11';
     public static TaskType = TaskType;
 
     constructor(

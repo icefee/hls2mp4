@@ -1,4 +1,4 @@
-export declare enum TaskType {
+declare enum TaskType {
     loadFFmeg = 0,
     parseM3u8 = 1,
     downloadTs = 2,
@@ -20,7 +20,7 @@ type Hls2Mp4Options = {
      */
     tsDownloadConcurrency?: number;
     /**
-     * the base url of ffmpeg default: https://unpkg.com/@ffmpeg/core@0.12.2/dist/umd
+     * the base url of ffmpeg default: https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd
      */
     ffmpegBaseUrl?: string;
     /**
@@ -32,7 +32,7 @@ type Hls2Mp4Options = {
      */
     onError?: ErrorCallback;
 };
-export interface M3u8Parsed {
+declare interface M3u8Parsed {
     url: string;
     content: string;
 }

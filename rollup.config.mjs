@@ -5,6 +5,7 @@
 import typescript from '@rollup/plugin-typescript';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
+import terser from '@rollup/plugin-terser';
 
 export default {
     input: 'src/index.ts',
@@ -18,8 +19,11 @@ export default {
             format: 'umd',
             file: './dist/hls2mp4.umd.js',
             globals: {
-                '@ffmpeg/ffmpeg': 'FFmpeg'
-            }
+                '@ffmpeg/ffmpeg': 'FFmpegWASM'
+            },
+            plugins: [
+                terser()
+            ]
         },
         {
             format: 'cjs',
@@ -28,10 +32,13 @@ export default {
         {
             name: 'Hls2Mp4',
             format: 'iife',
-            file: './dist/hls2mp4.js',
+            file: './dist/hls2mp4.min.js',
             globals: {
-                '@ffmpeg/ffmpeg': 'FFmpeg'
-            }
+                '@ffmpeg/ffmpeg': 'FFmpegWASM'
+            },
+            plugins: [
+                terser()
+            ]
         }
     ],
     plugins: [
@@ -40,7 +47,6 @@ export default {
         nodeResolve()
     ],
     external: [
-        '@ffmpeg/ffmpeg',
-        '@ffmpeg/util'
+        '@ffmpeg/ffmpeg'
     ]
 }

@@ -1,7 +1,5 @@
 'use strict';
 
-Object.defineProperty(exports, '__esModule', { value: true });
-
 var ffmpeg = require('@ffmpeg/ffmpeg');
 
 /******************************************************************************
@@ -874,13 +872,13 @@ var aesJs = {exports: {}};
 var aesJsExports = aesJs.exports;
 var aesjs = /*@__PURE__*/getDefaultExportFromCjs(aesJsExports);
 
-exports.TaskType = void 0;
+var TaskType;
 (function (TaskType) {
     TaskType[TaskType["loadFFmeg"] = 0] = "loadFFmeg";
     TaskType[TaskType["parseM3u8"] = 1] = "parseM3u8";
     TaskType[TaskType["downloadTs"] = 2] = "downloadTs";
     TaskType[TaskType["mergeTs"] = 3] = "mergeTs";
-})(exports.TaskType || (exports.TaskType = {}));
+})(TaskType || (TaskType = {}));
 function fetchFile(url) {
     return __awaiter(this, void 0, void 0, function () {
         var response, arrayBuffer;
@@ -919,7 +917,7 @@ function parseUrl(url, path) {
     }
     return new URL(path, url).href;
 }
-var ffmpegDefaultBaseUrl = 'https://unpkg.com/@ffmpeg/core@0.12.2/dist/umd';
+var ffmpegDefaultBaseUrl = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
 var Hls2Mp4 = /** @class */ (function () {
     function Hls2Mp4(_a, 
     /**
@@ -1032,12 +1030,12 @@ var Hls2Mp4 = /** @class */ (function () {
             return __generator(this, function (_d) {
                 switch (_d.label) {
                     case 0:
-                        (_a = this.onProgress) === null || _a === void 0 ? void 0 : _a.call(this, exports.TaskType.parseM3u8, 0);
+                        (_a = this.onProgress) === null || _a === void 0 ? void 0 : _a.call(this, TaskType.parseM3u8, 0);
                         return [4 /*yield*/, this.loopLoadFile(function () { return Hls2Mp4.parseM3u8File(url); })];
                     case 1:
                         _c = _d.sent(), done = _c.done, data = _c.data;
                         if (done) {
-                            (_b = this.onProgress) === null || _b === void 0 ? void 0 : _b.call(this, exports.TaskType.parseM3u8, 1);
+                            (_b = this.onProgress) === null || _b === void 0 ? void 0 : _b.call(this, TaskType.parseM3u8, 1);
                             return [2 /*return*/, data];
                         }
                         throw new Error('m3u8 load failed');
@@ -1080,7 +1078,7 @@ var Hls2Mp4 = /** @class */ (function () {
                                         buffer = key ? this.aesDecrypt(tsData, key, iv) : this.transformBuffer(tsData);
                                         this.ffmpeg.writeFile(name, buffer);
                                         this.savedSegments += 1;
-                                        (_b = this.onProgress) === null || _b === void 0 ? void 0 : _b.call(this, exports.TaskType.downloadTs, this.savedSegments / this.totalSegments);
+                                        (_b = this.onProgress) === null || _b === void 0 ? void 0 : _b.call(this, TaskType.downloadTs, this.savedSegments / this.totalSegments);
                                         return [2 /*return*/, {
                                                 source: source,
                                                 url: url,
@@ -1264,7 +1262,7 @@ var Hls2Mp4 = /** @class */ (function () {
             return __generator(this, function (_c) {
                 switch (_c.label) {
                     case 0:
-                        (_a = this.onProgress) === null || _a === void 0 ? void 0 : _a.call(this, exports.TaskType.loadFFmeg, 0);
+                        (_a = this.onProgress) === null || _a === void 0 ? void 0 : _a.call(this, TaskType.loadFFmeg, 0);
                         baseUrl = this.ffmpegBaseUrl;
                         return [4 /*yield*/, toBlobURL("".concat(baseUrl, "/ffmpeg-core.js"), 'text/javascript')];
                     case 1:
@@ -1281,7 +1279,7 @@ var Hls2Mp4 = /** @class */ (function () {
                     case 3:
                         loaded = _c.sent();
                         if (loaded) {
-                            (_b = this.onProgress) === null || _b === void 0 ? void 0 : _b.call(this, exports.TaskType.loadFFmeg, 1);
+                            (_b = this.onProgress) === null || _b === void 0 ? void 0 : _b.call(this, TaskType.loadFFmeg, 1);
                         }
                         else {
                             return [2 /*return*/, this.loadFFmpeg()];
@@ -1305,7 +1303,7 @@ var Hls2Mp4 = /** @class */ (function () {
                         return [4 /*yield*/, this.downloadM3u8(url)];
                     case 2:
                         m3u8 = _d.sent();
-                        (_a = this.onProgress) === null || _a === void 0 ? void 0 : _a.call(this, exports.TaskType.mergeTs, 0);
+                        (_a = this.onProgress) === null || _a === void 0 ? void 0 : _a.call(this, TaskType.mergeTs, 0);
                         return [4 /*yield*/, this.ffmpeg.exec(['-i', m3u8, '-c', 'copy', 'temp.mp4', '-loglevel', 'debug'])];
                     case 3:
                         _d.sent();
@@ -1313,7 +1311,7 @@ var Hls2Mp4 = /** @class */ (function () {
                     case 4:
                         data = _d.sent();
                         this.ffmpeg.terminate();
-                        (_b = this.onProgress) === null || _b === void 0 ? void 0 : _b.call(this, exports.TaskType.mergeTs, 1);
+                        (_b = this.onProgress) === null || _b === void 0 ? void 0 : _b.call(this, TaskType.mergeTs, 1);
                         return [2 /*return*/, data];
                     case 5:
                         err_2 = _d.sent();
@@ -1336,9 +1334,9 @@ var Hls2Mp4 = /** @class */ (function () {
     Hls2Mp4.prototype.destroy = function () {
         this.ffmpeg.terminate();
     };
-    Hls2Mp4.version = '1.2.10';
-    Hls2Mp4.TaskType = exports.TaskType;
+    Hls2Mp4.version = '1.2.11';
+    Hls2Mp4.TaskType = TaskType;
     return Hls2Mp4;
 }());
 
-exports.default = Hls2Mp4;
+module.exports = Hls2Mp4;
