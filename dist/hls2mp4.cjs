@@ -970,9 +970,9 @@ var Hls2Mp4 = /** @class */ (function () {
         return aesCbc.decrypt(buffer);
     };
     Hls2Mp4.parseM3u8File = function (url, customFetch) {
-        var _a, _b, _c;
         return __awaiter(this, void 0, void 0, function () {
             var playList, streamInfoMatcher, streamInfos, lines, bandwidthMatcher, bandwidth, maxBandwidthUrl, i, line, currentBandwidth, matcher, matched, parsedUrl;
+            var _a, _b, _c;
             return __generator(this, function (_d) {
                 switch (_d.label) {
                     case 0:
@@ -1024,18 +1024,18 @@ var Hls2Mp4 = /** @class */ (function () {
         });
     };
     Hls2Mp4.prototype.parseM3u8 = function (url) {
-        var _a, _b;
         return __awaiter(this, void 0, void 0, function () {
-            var _c, done, data;
+            var _a, done, data;
+            var _b, _c;
             return __generator(this, function (_d) {
                 switch (_d.label) {
                     case 0:
-                        (_a = this.onProgress) === null || _a === void 0 ? void 0 : _a.call(this, TaskType.parseM3u8, 0);
+                        (_b = this.onProgress) === null || _b === void 0 ? void 0 : _b.call(this, TaskType.parseM3u8, 0);
                         return [4 /*yield*/, this.loopLoadFile(function () { return Hls2Mp4.parseM3u8File(url); })];
                     case 1:
-                        _c = _d.sent(), done = _c.done, data = _c.data;
+                        _a = _d.sent(), done = _a.done, data = _a.data;
                         if (done) {
-                            (_b = this.onProgress) === null || _b === void 0 ? void 0 : _b.call(this, TaskType.parseM3u8, 1);
+                            (_c = this.onProgress) === null || _c === void 0 ? void 0 : _c.call(this, TaskType.parseM3u8, 1);
                             return [2 /*return*/, data];
                         }
                         throw new Error('m3u8 load failed');
@@ -1044,18 +1044,18 @@ var Hls2Mp4 = /** @class */ (function () {
         });
     };
     Hls2Mp4.prototype.downloadFile = function (url) {
-        var _a;
         return __awaiter(this, void 0, void 0, function () {
-            var _b, done, data, fileName;
+            var _a, done, data, fileName;
+            var _b;
             return __generator(this, function (_c) {
                 switch (_c.label) {
                     case 0: return [4 /*yield*/, this.loopLoadFile(function () { return fetchFile(url); })];
                     case 1:
-                        _b = _c.sent(), done = _b.done, data = _b.data;
+                        _a = _c.sent(), done = _a.done, data = _a.data;
                         if (done) {
                             return [2 /*return*/, data];
                         }
-                        fileName = (_a = url.match(/\w+\.\w{2,3}$/i)) === null || _a === void 0 ? void 0 : _a[0];
+                        fileName = (_b = url.match(/\w+\.\w{2,3}$/i)) === null || _b === void 0 ? void 0 : _b[0];
                         throw new Error("load file ".concat(fileName, " error after retry ").concat(this.maxRetry, " times."));
                 }
             });
@@ -1065,43 +1065,41 @@ var Hls2Mp4 = /** @class */ (function () {
         return __awaiter(this, void 0, void 0, function () {
             var _this = this;
             return __generator(this, function (_a) {
-                return [2 /*return*/, Promise.all(segs.map(function (_a) {
-                        var name = _a.name, url = _a.url, source = _a.source;
-                        return __awaiter(_this, void 0, void 0, function () {
-                            var tsData, buffer;
-                            var _b;
-                            return __generator(this, function (_c) {
-                                switch (_c.label) {
-                                    case 0: return [4 /*yield*/, this.downloadFile(url)];
-                                    case 1:
-                                        tsData = _c.sent();
-                                        buffer = key ? this.aesDecrypt(tsData, key, iv) : this.transformBuffer(tsData);
-                                        this.ffmpeg.writeFile(name, buffer);
-                                        this.savedSegments += 1;
-                                        (_b = this.onProgress) === null || _b === void 0 ? void 0 : _b.call(this, TaskType.downloadTs, this.savedSegments / this.totalSegments);
-                                        return [2 /*return*/, {
-                                                source: source,
-                                                url: url,
-                                                name: name
-                                            }];
-                                }
-                            });
+                return [2 /*return*/, Promise.all(segs.map(function (_a) { return __awaiter(_this, [_a], void 0, function (_b) {
+                        var tsData, buffer;
+                        var _c;
+                        var name = _b.name, url = _b.url, source = _b.source;
+                        return __generator(this, function (_d) {
+                            switch (_d.label) {
+                                case 0: return [4 /*yield*/, this.downloadFile(url)];
+                                case 1:
+                                    tsData = _d.sent();
+                                    buffer = key ? this.aesDecrypt(tsData, key, iv) : this.transformBuffer(tsData);
+                                    this.ffmpeg.writeFile(name, buffer);
+                                    this.savedSegments += 1;
+                                    (_c = this.onProgress) === null || _c === void 0 ? void 0 : _c.call(this, TaskType.downloadTs, this.savedSegments / this.totalSegments);
+                                    return [2 /*return*/, {
+                                            source: source,
+                                            url: url,
+                                            name: name
+                                        }];
+                            }
                         });
-                    }))];
+                    }); }))];
             });
         });
     };
     Hls2Mp4.prototype.downloadM3u8 = function (url) {
-        var _a, _b, _c;
         return __awaiter(this, void 0, void 0, function () {
-            var m3u8Parsed, _d, content, parsedUrl, keyTagMatchRegExp, extMatchRegExp, matchReg, matches, segments, i, matched, matchedKey, matchedIV, segment, batch, treatedSegments, segments_1, segments_1_1, group, total, keyBuffer, keyUrl, _loop_1, this_1, i, e_1_1, m3u8;
-            var e_1, _e;
+            var m3u8Parsed, _a, content, parsedUrl, keyTagMatchRegExp, extMatchRegExp, matchReg, matches, segments, i, matched, matchedKey, matchedIV, segment, batch, treatedSegments, segments_1, segments_1_1, group, total, keyBuffer, keyUrl, _loop_1, this_1, i, e_1_1, m3u8;
+            var e_1, _b;
+            var _c, _d, _e;
             return __generator(this, function (_f) {
                 switch (_f.label) {
                     case 0: return [4 /*yield*/, this.parseM3u8(url)];
                     case 1:
                         m3u8Parsed = _f.sent();
-                        _d = m3u8Parsed, content = _d.content, parsedUrl = _d.url;
+                        _a = m3u8Parsed, content = _a.content, parsedUrl = _a.url;
                         keyTagMatchRegExp = new RegExp('#EXT-X-KEY:METHOD=(AES-128|NONE)(,URI="[^"]+"(,IV=\\w+)?)?', 'gi');
                         extMatchRegExp = new RegExp('#EXTINF:\\d+(\\.\\d+)?,\\n');
                         matchReg = new RegExp(keyTagMatchRegExp.source + '|' + extMatchRegExp.source + '.+', 'gim');
@@ -1113,8 +1111,8 @@ var Hls2Mp4 = /** @class */ (function () {
                         for (i = 0; i < matches.length; i++) {
                             matched = matches[i];
                             if (matched.match(/#EXT-X-KEY/)) {
-                                matchedKey = (_a = matched.match(/(?<=URI=").+(?=")/)) === null || _a === void 0 ? void 0 : _a[0];
-                                matchedIV = (_c = (_b = matched.match(/IV=\w+$/)) === null || _b === void 0 ? void 0 : _b[0]) === null || _c === void 0 ? void 0 : _c.replace(/^IV=/, '');
+                                matchedKey = (_c = matched.match(/(?<=URI=").+(?=")/)) === null || _c === void 0 ? void 0 : _c[0];
+                                matchedIV = (_e = (_d = matched.match(/IV=\w+$/)) === null || _d === void 0 ? void 0 : _d[0]) === null || _e === void 0 ? void 0 : _e.replace(/^IV=/, '');
                                 segments.push({
                                     key: matchedKey,
                                     iv: matchedIV,
@@ -1212,7 +1210,7 @@ var Hls2Mp4 = /** @class */ (function () {
                         return [3 /*break*/, 14];
                     case 13:
                         try {
-                            if (segments_1_1 && !segments_1_1.done && (_e = segments_1.return)) _e.call(segments_1);
+                            if (segments_1_1 && !segments_1_1.done && (_b = segments_1.return)) _b.call(segments_1);
                         }
                         finally { if (e_1) throw e_1.error; }
                         return [7 /*endfinally*/];
@@ -1256,9 +1254,9 @@ var Hls2Mp4 = /** @class */ (function () {
         });
     };
     Hls2Mp4.prototype.loadFFmpeg = function () {
-        var _a, _b;
         return __awaiter(this, void 0, void 0, function () {
             var baseUrl, coreURL, wasmURL, loaded;
+            var _a, _b;
             return __generator(this, function (_c) {
                 switch (_c.label) {
                     case 0:
@@ -1290,9 +1288,9 @@ var Hls2Mp4 = /** @class */ (function () {
         });
     };
     Hls2Mp4.prototype.download = function (url) {
-        var _a, _b, _c;
         return __awaiter(this, void 0, void 0, function () {
             var m3u8, data, err_2;
+            var _a, _b, _c;
             return __generator(this, function (_d) {
                 switch (_d.label) {
                     case 0:
@@ -1334,7 +1332,7 @@ var Hls2Mp4 = /** @class */ (function () {
     Hls2Mp4.prototype.destroy = function () {
         this.ffmpeg.terminate();
     };
-    Hls2Mp4.version = '1.2.11';
+    Hls2Mp4.version = '1.2.12';
     Hls2Mp4.TaskType = TaskType;
     return Hls2Mp4;
 }());

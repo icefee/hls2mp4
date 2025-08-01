@@ -62,7 +62,7 @@ type SegmentGroup = {
     segments: string[];
 }
 
-async function fetchFile(url: string): Promise<Uint8Array> {
+async function fetchFile(url: string): Promise<Uint8Array<ArrayBuffer>> {
     const response = await fetch(url)
     const arrayBuffer = await response.arrayBuffer()
     return new Uint8Array(arrayBuffer)
@@ -99,7 +99,7 @@ class Hls2Mp4 {
     private tsDownloadConcurrency: number;
     private totalSegments = 0;
     private savedSegments = 0;
-    public static version = '1.2.11';
+    public static version = '1.2.12';
     public static TaskType = TaskType;
 
     constructor(
@@ -379,7 +379,7 @@ class Hls2Mp4 {
         }
     }
 
-    public async download(url: string) {
+    public async download(url: string): Promise<Uint8Array<ArrayBuffer> | null> {
         try {
             await this.loadFFmpeg()
             const m3u8 = await this.downloadM3u8(url)
@@ -388,7 +388,7 @@ class Hls2Mp4 {
             const data = await this.ffmpeg.readFile('temp.mp4')
             this.ffmpeg.terminate()
             this.onProgress?.(TaskType.mergeTs, 1)
-            return data
+            return data as Uint8Array<ArrayBuffer>
         }
         catch (err) {
             this.ffmpeg.terminate()

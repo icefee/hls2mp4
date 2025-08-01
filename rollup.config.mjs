@@ -42,7 +42,9 @@ export default {
         }
     ],
     plugins: [
-        typescript(),
+        typescript({
+            outputToFilesystem: true
+        }),
         commonjs(),
         nodeResolve()
     ],
